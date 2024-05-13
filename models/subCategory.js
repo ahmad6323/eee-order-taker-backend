@@ -11,6 +11,10 @@ const subCatSchema = new mongoose.Schema({
   sku: {
     type: String,
     required: true, 
+  },
+  parent_id : {
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: "Category",
   }
 });
 
