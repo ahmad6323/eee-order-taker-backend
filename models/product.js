@@ -11,17 +11,19 @@ const productSchema = new mongoose.Schema({
   category: {
     type: mongoose.Schema.Types.ObjectId, 
     ref: "Category",
-    required: true,
   },
-  department: {
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: "Department",
-    required: true,
-  },
-  variations: [{
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: "ProductVariation",
-  }],
+  department: [
+    {
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: "Department",
+    }
+  ],
+  variations: [
+    {
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: "ProductVariation",
+    }
+  ],
   price: {
     type: Number,
     required: true,
@@ -29,7 +31,6 @@ const productSchema = new mongoose.Schema({
   },
   imageUrl: {
     type: String,
-    required: true,
   },
   description: {
     type: String,

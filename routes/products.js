@@ -10,31 +10,26 @@ const upload = multer({dest: "./public/products/"});
 // CREATE
 router.post("/",  upload.array('images'), async (req, res) => {
   try {
-    const { error } = validate(req.body);
-    if (error) return res.status(400).send(error.details[0].message);
 
     const { name, category, department, price, colors, sizes, description } = req.body;
 
     const existingCategory = await Category.findById(category);
     const existingDepartment = await Department.findById(department);
 
-    if (!existingCategory) return res.status(400).send("Category not found");
-    if (!existingDepartment){
-      return res.status(400).send("Department not found");
-    }
+    // if (!existingCategory) return res.status(400).send("Category not found");
+    // if (!existingDepartment){
+    //   return res.status(400).send("Department not found");
+    // }
 
     // create product
     let product = new Product({
       name,
-      category,
-      department,
       price,
-      colors,
       description,
     });
     
     // update images
-    if(req.files.length > 0){
+    if(req.files && req.files.length > 0){
       const filePaths = req.files.map(file => file.path);
       // Join file paths into a single comma-separated string
       const filePathsString = filePaths.join(',');
@@ -45,26 +40,30 @@ router.post("/",  upload.array('images'), async (req, res) => {
     // save product
     product = await product.save();
     
+    const categorySKU = "001";
+    const subCatSKU = "001";
+
     // create variations
     const productVariations = [];
     const productVariationIds = []; 
-    for (const color of colors) {
-        for (const size of sizes) {
-          const SKU = generateSKU(product._id, color, size);
-          const variation = new ProductVariation({
-              productId: product._id,
-              color: color,
-              size: size,
-              SKU: SKU
-          });
-          const savedVariation = await variation.save(); 
-          productVariations.push(savedVariation);
-          productVariationIds.push(savedVariation._id);
-        }
-    }
+    let SKU = await generateSKU();
 
-    // save all variations
-    await ProductVariation.insertMany(productVariations);
+    for (const color of colors) {
+      for (const size of sizes) {
+        
+        const variation = new ProductVariation({
+          productId: product._id,
+          color: color,
+          size: size,
+          SKU: `${categorySKU}-${subCatSKU}-${SKU.toString().padStart(5, '0')}`
+        });
+
+        SKU = producSKU(SKU);
+        
+        const savedVariation = await variation.save(); 
+        productVariationIds.push(savedVariation._id);
+      }
+    }
 
     // Update the product with the generated variation IDs
     product = await Product.findByIdAndUpdate(product._id, { $push: { variations: { $each: productVariationIds } } }, { new: true });
@@ -75,6 +74,10 @@ router.post("/",  upload.array('images'), async (req, res) => {
     res.status(500).send("Server Error");
   }
 });
+
+function producSKU(sku){
+  return sku + 1;
+}
 
 // READ (Get all products)
 router.get("/", async (req, res) => {
@@ -172,23 +175,13 @@ router.delete("/:id", async (req, res) => {
 });
 
 
-
-async function generateSKU(productId, color, size) {
+async function generateSKU() {
   try{
-    // get count of variations, 
-    // if count is 0 -> return "00001"
-    // else return the number's string based on 00000
-
-    const countsVariants = await ProductVariation.countDocuments({});
-
-    if(countsVariants > 0){
-      
-    }
-    
-    return "00001";
+    // get count of variations
+    return await ProductVariation.countDocuments({});
   }catch(ex){
     console.error(err.message);
-    return "00001";
+    return 0;
   }
 }
 

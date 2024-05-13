@@ -1,28 +1,45 @@
 const express = require("express");
 const router = express.Router();
-const { Category, validate } = require("../models/category");
+const Category = require("../models/category");
+const SubCategory = require("../models/subCategory");
 
 router.post("/", async (req, res) => {
-  const { error } = validate(req.body);
-  if (error) return res.status(400).send(error.details[0].message);
-
   const { mainCategory, subCategory } = req.body;
 
-  // Check if category with the same mainCategory and subCategory already exists
-  let existingCategory = await Category.findOne({ mainCategory, subCategory });
+  // check duplicate
+  let existingCategory = await Category.findOne({ name: mainCategory });
   if (existingCategory) {
     return res.status(400).send("Category already exists.");
   }
 
+  let existingSubCat = await SubCategory.findOne({ name: subCategory });
+  if (existingSubCat) {
+    return res.status(400).send("Sub-Category already exists.");
+  }
+
+  let subCatCount = await getSubCatCount();
+  // create sub-category
+  let subCat = new SubCategory({
+    name: subCategory,
+    sku: subCatCount.toString().padStart(4,'0'),
+  });
+
+  subCat = await subCat.save();
+
+  let catCount = await getCatCount();
   // If not, save the new category
   let category = new Category({
-    mainCategory,
-    subCategory,
+    name: mainCategory,
+    sku: catCount.toString().padStart(4,'0'),
+    subCategories: [
+      subCat._id
+    ]
   });
 
   category = await category.save();
   res.send(category);
 });
+
 
 router.get("/", async (req, res) => {
   const categories = await Category.find().sort("mainCategory");
@@ -93,5 +110,17 @@ router.put("/:id", async (req, res) => {
 
   res.send(category);
 });
+
+
+async function getSubCatCount(){
+  let count = await SubCategory.countDocuments({});
+  return count++;
+}
+
+async function getCatCount(){
+  let count = await Category.countDocuments({});
+  return count++;
+}
+
 
 module.exports = router;
