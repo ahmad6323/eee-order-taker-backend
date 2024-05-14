@@ -21,3 +21,27 @@
         "Half Sleeve Printed T-Shirt"
     ]
 }
+
+{
+    "category": "6643ac9d97cd6fc7575d364e",
+    "colors": [
+        "6643a26c5293e7e0ab307bf0",
+        "6643a26c5293e7e0ab307be8",
+        "6643a26c5293e7e0ab307bec"
+    ],
+    "department": [
+        "6643b2f1b6a78ee82acd786b"
+    ],
+    "description": "some description",
+    "imageUrl": [],
+    "name": "Batman Shirt",
+    "price": "990",
+    "sizes": [
+        "6643a24c5293e7e0ab307bcb",
+        "6643a2535293e7e0ab307bd7",
+        "6643a24a5293e7e0ab307bc7",
+        "6643a24e5293e7e0ab307bcf"
+    ]
+}
+
+"db": "mongodb+srv://affan:8tOkFjyuW2Ewe168@ecompro.a4i4hjk.mongodb.net/"

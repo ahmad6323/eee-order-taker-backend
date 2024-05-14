@@ -4,17 +4,17 @@ const Schema = mongoose.Schema;
 const productVariationSchema = new Schema({
     productId: {
         type: Schema.Types.ObjectId,
-        ref: 'Product', // Reference to the main product
+        ref: 'Product',
         required: true
     },
     color: {
         type: Schema.Types.ObjectId,
-        ref: 'Color', // Reference to the color
+        ref: 'Color', 
         required: true
     },
     size: {
         type: Schema.Types.ObjectId,
-        ref: 'Size', // Reference to the size
+        ref: 'Size', 
         required: true
     },
     SKU: {

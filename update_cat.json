@@ -1,0 +1,29 @@
+{
+    "mainCategory": "Shirt",
+    "subCategory": [
+        {
+            "_id": "6643ac9d97cd6fc7575d364c",
+            "name": "Plain T-Shirt"
+        },
+        {
+            "_id": "6643ac9d97cd6fc7575d364e",
+            "name": "Printed T-Shirt"
+        },
+        {
+            "_id": "6643ac9d97cd6fc7575d3650",
+            "name": "Plain Dress Shirt"
+        },
+        {
+            "_id": "6643ac9d97cd6fc7575d3652",
+            "name": "Check Dress Shirt"
+        },
+        {
+            "_id": "6643ac9d97cd6fc7575d3654",
+            "name": "Half Sleeve Plain T-Shirt"
+        },
+        {
+            "_id": null,
+            "name": "Under T"
+        }
+    ]
+}

@@ -13,8 +13,10 @@ router.post("/",  upload.array('images'), async (req, res) => {
 
     const { name, category, department, price, colors, sizes, description } = req.body;
 
-    const existingCategory = await Category.findById(category);
-    const existingDepartment = await Department.findById(department);
+    console.log(req.body);
+
+    // const existingSubCat = await Category.findById(category);
+    // const validDepartments = await Department.find(department);
 
     // if (!existingCategory) return res.status(400).send("Category not found");
     // if (!existingDepartment){
@@ -48,9 +50,13 @@ router.post("/",  upload.array('images'), async (req, res) => {
     const productVariationIds = []; 
     let SKU = await generateSKU();
 
+    // take colors and split it
+
     for (const color of colors) {
+
+
+
       for (const size of sizes) {
-        
         const variation = new ProductVariation({
           productId: product._id,
           color: color,
