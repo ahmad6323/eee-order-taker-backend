@@ -1,0 +1,23 @@
+{
+    "mainCategory" : "Shoes",
+    "subCategory" : [
+        "Chappal",
+        "Sneakers",
+        "Office Boots",
+        "Joggers",
+        "Slippers",
+        "Casual"
+      ]
+}
+
+{
+    "mainCategory" : "Shirt",
+    "subCategory" : [
+        "Plain T-Shirt",
+        "Printed T-Shirt",
+        "Plain Dress Shirt",
+        "Check Dress Shirt",
+        "Half Sleeve Plain T-Shirt",
+        "Half Sleeve Printed T-Shirt"
+    ]
+}

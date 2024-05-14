@@ -36,10 +36,11 @@ router.post("/", async (req, res) => {
       sku: subCatCount.toString().padStart(4, '0'),
       parent_id: category._id
     });
+
+    subCatCount++;
   
     subCat = await subCat.save();
   
-    subCatCount = subCatCount + 1;
   
     return subCat._id;
   }));
@@ -108,26 +109,66 @@ router.get("/subcategory/:subcategory", async (req, res) => {
   }
 });
 
-router.put("/:id", async (req, res) => {
-  const { error } = validate(req.body);
-  if (error) return res.status(400).send(error.details[0].message);
+router.put("/:category_id", async (req, res) => {
 
-  const { mainCategory, subCategory } = req.body;
+  try{
+    
+    const { mainCategory, subCategory } = req.body;
+    
+    const category = await Category.findById(req.params.category_id);
 
-  const category = await Category.findByIdAndUpdate(
-    req.params.id,
-    {
-      mainCategory,
-      subCategory,
-    },
-    { new: true }
-  );
-  if (!category)
-    return res
-      .status(404)
-      .send("The category with the given ID was not found.");
+    if (!category) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
 
-  res.send(category);
+    let subCatCount = await getSubCatCount();
+
+    for (const sub of subCategory) {
+      if (!sub._id) {
+        // Create new sub-category
+        const newSubCategory = new SubCategory({
+          name: sub.name,
+          category_id: category._id,
+          sku: subCatCount.toString().padStart(4,"0")
+        });
+        subCatCount++;
+        await newSubCategory.save();
+        category.subCategories.push(newSubCategory._id);
+      } else {
+        // Update existing sub-category
+        await SubCategory.findByIdAndUpdate(sub._id, { name: sub.name });
+      }
+    }
+
+    const mismatchedCats = subCats.filter(subCat => {
+      // Check if the subCat is not new and has a valid _id
+      if (subCat._id !== null) {
+        // Check if the subCat is not present in mainCats
+        return !mainCats.find(mainCat => mainCat._id === subCat._id);
+      }
+      return false; // Filter out new cats and cats without _id
+    });
+
+    // Remove deleted sub-categories not referred in products
+    mismatchedCats.map(async (subId) => {
+      const referredInProducts = await Product.findOne({ category: subId });
+      if (!referredInProducts) {
+        category.subCategories.filter(subCat => subCat._id !== subId);
+        await SubCategory.findByIdAndDelete(subId);
+        return false;
+      }
+    });
+
+    console.log(category);
+    
+    await category.save();
+
+    res.status(200).json({ message: 'Category updated successfully' })
+
+  }catch(ex){
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 

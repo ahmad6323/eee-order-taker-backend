@@ -9,7 +9,6 @@ router.post("/", async (req, res) => {
   if (error) return res.status(400).send(error.details[0].message);
 
   const { color } = req.body;
-  console.log(color);
 
   // can be multiple
   var colors = color.split(",");
