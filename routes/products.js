@@ -6,6 +6,9 @@ const { Department } = require("../models/department");
 const ProductVariation = require("../models/productVariation");
 const multer = require('multer');
 const upload = multer({dest: "./public/products/"});
+const Color = require("../models/colors");
+const Size = require("../models/size");
+const SubCategory = require("../models/subCategory");
 
 // CREATE
 router.post("/",  upload.array('images'), async (req, res) => {
@@ -13,21 +16,25 @@ router.post("/",  upload.array('images'), async (req, res) => {
 
     const { name, category, department, price, colors, sizes, description } = req.body;
 
-    console.log(req.body);
+    const existingSubCat = await SubCategory.findById(category).populate("parent_id");
+    if (!existingSubCat){
+      return res.status(400).send("Sub-Category not found")
+    };
 
-    // const existingSubCat = await Category.findById(category);
-    // const validDepartments = await Department.find(department);
+    const foundDeparts = await Department.find({
+      _id: { $in: department }
+    }).select('_id');
 
-    // if (!existingCategory) return res.status(400).send("Category not found");
-    // if (!existingDepartment){
-    //   return res.status(400).send("Department not found");
-    // }
+    if(foundDeparts.length !== department.length){
+      return res.status(400).send("Department not found");
+    }
 
     // create product
     let product = new Product({
       name,
       price,
       description,
+      department: foundDeparts
     });
     
     // update images
@@ -42,11 +49,7 @@ router.post("/",  upload.array('images'), async (req, res) => {
     // save product
     product = await product.save();
     
-    const categorySKU = "001";
-    const subCatSKU = "001";
-
     // create variations
-    const productVariations = [];
     const productVariationIds = []; 
     let SKU = await generateSKU();
 
@@ -54,14 +57,24 @@ router.post("/",  upload.array('images'), async (req, res) => {
 
     for (const color of colors) {
 
+      const findColor = await Color.findById(color);
 
-
+      if(!findColor){
+        return;
+      }
+      
       for (const size of sizes) {
+
+        const findSize = await Size.findById(size);
+  
+        if(!findSize){
+          return;
+        }
         const variation = new ProductVariation({
           productId: product._id,
-          color: color,
-          size: size,
-          SKU: `${categorySKU}-${subCatSKU}-${SKU.toString().padStart(5, '0')}`
+          color: findColor._id,
+          size: findSize._id,
+          SKU: `${existingSubCat.parent_id.sku}-${existingSubCat.sku}-${SKU.toString().padStart(5, '0')}`
         });
 
         SKU = producSKU(SKU);
@@ -73,7 +86,7 @@ router.post("/",  upload.array('images'), async (req, res) => {
 
     // Update the product with the generated variation IDs
     product = await Product.findByIdAndUpdate(product._id, { $push: { variations: { $each: productVariationIds } } }, { new: true });
-
+    
     res.send(product);
   } catch (err) {
     console.error(err.message);
@@ -88,7 +101,13 @@ function producSKU(sku){
 // READ (Get all products)
 router.get("/", async (req, res) => {
   try {
-    const products = await Product.find().sort("name");
+    const products = await Product.find().sort("name").populate({
+      path: 'variations',
+      populate: [
+        { path: 'color' }, 
+        { path: 'size' }
+      ]
+    });
     res.send(products);
   } catch (err) {
     console.error(err.message);

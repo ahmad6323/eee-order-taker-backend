@@ -23,6 +23,11 @@ const salesmanSchema = new mongoose.Schema({
     required: true,
     minlength: 8,
   },
+  role: {
+    type: String,
+    required: true,
+    default: "salesman",
+  },
   department: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Department",

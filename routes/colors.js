@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { Color, validate } = require("../models/colors");
+const Color = require("../models/colors");
 
 // POST operation to create a new size
 router.post("/", async (req, res) => {

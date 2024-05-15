@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { Size, validate } = require("../models/size");
+const Size = require("../models/size");
 
 // POST operation to create a new size
 router.post("/", async (req, res) => {

@@ -24,6 +24,7 @@ router.post("/", async (req, res) => {
       email: user.email,
       cnic: user.cnic,
       phone: user.phone,
+      role: user.role
     },
     config.get("jwtpk")
   );
