@@ -70,6 +70,16 @@ router.post("/", async (req, res) => {
 
 router.get("/", async (req, res) => {
   try{
+    const categories = await Category.find().sort("name").populate("subCategories");
+    res.send(categories);
+  }catch(ex){
+    console.log(ex);
+    res.status(500).send("Error");
+  }
+});
+
+router.get("/sub_cats", async (req, res) => {
+  try{
     const categories = await SubCategory.find().sort("name").populate("parent_id");
     res.send(categories);
   }catch(ex){

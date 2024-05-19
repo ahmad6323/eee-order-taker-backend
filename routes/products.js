@@ -9,12 +9,32 @@ const upload = multer({dest: "./public/products/"});
 const Color = require("../models/colors");
 const Size = require("../models/size");
 const SubCategory = require("../models/subCategory");
+const fs = require('fs');
+const path = require('path');
 
 // CREATE
-router.post("/",  upload.array('images'), async (req, res) => {
+router.post("/", upload.any('imageUrl',12), async (req, res) => {
   try {
 
-    const { name, category, department, price, colors, sizes, description } = req.body;
+    const { imageUrl, name, category, department, price, colors, sizes, description } = req.body;
+
+    // Array to store the paths of the saved images
+    const imagePaths = [];
+
+    imageUrl && imageUrl.length > 0 && imageUrl.forEach((base64, index) => {
+      const buffer = Buffer.from(base64, 'base64');
+      const timestamp = new Date().getTime();
+      const imageName = `${name}_${timestamp}_product_image${index}.png`;
+      const imagePath = path.join(__dirname, '../public/products', imageName);
+
+      fs.writeFile(imagePath, buffer, err => {
+        if (err) {
+          console.error('Error saving the image:', err);
+        }
+        // Add the image path to the array
+        imagePaths.push(imageName);
+      });
+    });
 
     const existingSubCat = await SubCategory.findById(category).populate("parent_id");
     if (!existingSubCat){
@@ -34,7 +54,8 @@ router.post("/",  upload.array('images'), async (req, res) => {
       name,
       price,
       description,
-      department: foundDeparts
+      department: foundDeparts,
+      imageUrl: imagePaths
     });
     
     // update images
@@ -87,7 +108,7 @@ router.post("/",  upload.array('images'), async (req, res) => {
     // Update the product with the generated variation IDs
     product = await Product.findByIdAndUpdate(product._id, { $push: { variations: { $each: productVariationIds } } }, { new: true });
     
-    res.send(product);
+    res.status(200).send("Successfull");
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server Error");
@@ -153,10 +174,8 @@ router.put("/:id", async (req, res) => {
       req.body;
 
     const existingCategory = await Category.findById(category);
-    const existingDepartment = await Department.findById(department);
 
     if (!existingCategory) return res.status(400).send("Invalid category.");
-    if (!existingDepartment) return res.status(400).send("Invalid department.");
 
     let product = await Product.findByIdAndUpdate(
       req.params.id,
@@ -199,11 +218,15 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-
 async function generateSKU() {
   try{
-    // get count of variations
-    return await ProductVariation.countDocuments({});
+    let lastDoc = await ProductVariation.find().limit(1).sort({$natural:-1})
+    if(lastDoc.length === 0){
+      return 0;
+    }
+    let count = parseInt(lastDoc[0].sku);
+    count++;
+    return count;
   }catch(ex){
     console.error(err.message);
     return 0;

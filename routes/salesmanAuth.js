@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { Salesman } = require("../models/salesman");
+const Salesman = require("../models/salesman");
 const Joi = require("joi");
 const jwt = require("jsonwebtoken");
 const config = require("config");
@@ -12,7 +12,6 @@ router.post("/", async (req, res) => {
 
   let user = await Salesman.findOne({ email: req.body.email });
   if (!user || req.body.password !== user.password) {
-    // If user not found or password doesn't match
     return res.status(400).send("Salesman email or password is invalid.");
   }
 
@@ -40,4 +39,5 @@ function validate(req) {
 
   return Joi.validate(req, schema);
 }
+
 module.exports = router;

@@ -1,27 +1,28 @@
 const express = require("express");
 const router = express.Router();
-const { Salesman, validate } = require("../models/salesman");
+const Salesman = require("../models/salesman");
 const { Department } = require("../models/department");
 let userData = null;
 let verificationCode = 0;
-let FPEmail = null;
 const sendEmail = require("../utils/sendEmail");
-const bcrypt = require("bcrypt");
 
 router.post("/", async (req, res) => {
-  const { error } = validate(req.body);
-  if (error) return res.status(400).send(error.details[0].message);
+
+  console.log(req.body);
 
   let user = await Salesman.findOne({ email: req.body.email });
   if (user) return res.status(400).send("Email already registered!");
 
-  const existingDepartment = await Department.findById(req.body.department);
-  if (!existingDepartment) {
-    return res.status(400).send("Invalid department.");
-  }
+  const foundDeparts = await Department.find({
+    _id: { $in: req.body.department }
+  }).select('_id');
 
+  if(foundDeparts.length !== req.body.department.length){
+    return res.status(400).send("Department not found");
+  }
+  
   userData = req.body;
-  console.log(userData);
+
   verificationCode = Math.floor(100000 + Math.random() * 900000);
   sendEmail(userData.email, verificationCode);
   res.send({
@@ -122,6 +123,7 @@ router.get("/", async (req, res) => {
   const salesman = await Salesman.find().populate("department").sort("name");
   res.send(salesman);
 });
+
 router.get("/:id", async (req, res) => {
   const salesman = await Salesman.findById(req.params.id);
   res.send(salesman);
@@ -138,14 +140,16 @@ router.delete("/:id", async (req, res) => {
 });
 
 router.put("/:id", async (req, res) => {
-  const { error } = validate(req.body);
-  if (error) return res.status(400).send(error.details[0].message);
+
   const { name, phone, email, password, department } = req.body;
 
   // Check if department exists
-  const existingDepartment = await Department.findById(department);
-  if (!existingDepartment) {
-    return res.status(400).send("Invalid department.");
+   const foundDeparts = await Department.find({
+    _id: { $in: req.body.department }
+  }).select('_id');
+
+  if(foundDeparts.length !== req.body.department.length){
+    return res.status(400).send("Department not found");
   }
 
   const salesman = await Salesman.findByIdAndUpdate(

@@ -5,9 +5,6 @@ const Color = require("../models/colors");
 // POST operation to create a new size
 router.post("/", async (req, res) => {
   // Validate the request body
-  const { error } = validate(req.body);
-  if (error) return res.status(400).send(error.details[0].message);
-
   const { color } = req.body;
 
   // can be multiple

@@ -28,28 +28,14 @@ const salesmanSchema = new mongoose.Schema({
     required: true,
     default: "salesman",
   },
-  department: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Department",
-    required: true,
-  },
+  department: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Department",
+    }
+  ],
 });
 
 const Salesman = mongoose.model("Salesman", salesmanSchema);
 
-function validateSalesman(salesman) {
-  const schema = {
-    name: Joi.string().min(5).max(15).required(),
-    phone: Joi.string().length(11).required(),
-    email: Joi.string().required(),
-    password: Joi.string().min(8).required(),
-    department: Joi.string().required(), // Assuming department is validated separately
-  };
-
-  return Joi.validate(salesman, schema);
-}
-
-module.exports = {
-  Salesman: Salesman,
-  validate: validateSalesman,
-};
+module.exports = Salesman;
