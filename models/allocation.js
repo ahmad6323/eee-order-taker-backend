@@ -12,22 +12,16 @@ const productAllocationSchema = new mongoose.Schema({
     ref: "Product",
     required: true,
   },
-  allocations: [
+  products: [
     {
-      name: {
-        type: String,
-        required: true,
-        minlength: 1,
-        maxlength: 15,
+      variation: {
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: "ProductVariation",
       },
-      sizes: {
-        type: Map,
-        of: {
-          type: Number,
-          default: 0,
-        },
-      },
-    },
+      quantity: {
+        type: Number
+      }
+    }
   ],
 });
 
@@ -36,26 +30,5 @@ const ProductAllocation = mongoose.model(
   productAllocationSchema
 );
 
-function validateProductAllocation(productAllocation) {
-  const schema = {
-    salesmanId: Joi.string().required(),
-    productId: Joi.string().required(),
-    allocations: Joi.array()
-      .items(
-        Joi.object({
-          name: Joi.string().min(1).max(15).required(),
-          sizes: Joi.object()
-            .pattern(Joi.string(), Joi.number().min(0).default(0))
-            .required(),
-        })
-      )
-      .required(),
-  };
 
-  return Joi.validate(productAllocation, schema);
-}
-
-module.exports = {
-  ProductAllocation: ProductAllocation,
-  validate: validateProductAllocation,
-};
+module.exports = ProductAllocation;

@@ -1,8 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const { ProductAllocation, validate } = require("../models/allocation");
-const { Product } = require("../models/product");
-const { Salesman } = require("../models/salesman");
+const ProductAllocation = require("../models/allocation");
+const Product = require("../models/product");
+const Salesman = require("../models/salesman");
+const ProductVariation = require("../models/productVariation");
 
 // Create a new product allocation
 router.post("/", async (req, res) => {
@@ -112,6 +113,49 @@ router.delete("/:id", async (req, res) => {
 
     await ProductAllocation.findByIdAndRemove(req.params.id);
     res.send(productAllocation);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
+
+// get all variations for the salesman
+router.get("/variations/:id", async (req, res) => {
+  try {
+
+    const saleMan = await Salesman.findById(req.params.id);
+
+    if(!saleMan){
+      return res.status(404).send("Invalid salesman ID");
+    }
+    
+    const departmentsId = saleMan.department.map(dep => dep.toHexString());
+
+    // find products that belong to departments
+    const productsList = await Product.find({
+      department: {
+        $in: departmentsId
+      }
+    }).select("_id");
+
+
+    const variations = await ProductVariation.find({
+      productId: {
+        $in: productsList
+      }
+    }).populate({
+      path: 'productId',
+      select: 'name price'
+    }).populate({
+      path: "size",
+      select: "size"
+    })
+    .populate({
+      path: "color",
+      select: "color"
+    });
+
+    res.send(variations);
+
   } catch (error) {
     res.status(500).send(error.message);
   }
