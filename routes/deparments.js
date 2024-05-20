@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { Department, validate } = require("../models/department");
+const Department = require("../models/department");
 
 router.post("/", async (req, res) => {
   const { error } = validate(req.body);

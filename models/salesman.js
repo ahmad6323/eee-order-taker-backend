@@ -25,7 +25,6 @@ const salesmanSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    required: true,
     default: "salesman",
   },
   department: [

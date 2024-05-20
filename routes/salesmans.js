@@ -1,14 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const Salesman = require("../models/salesman");
-const { Department } = require("../models/department");
+const Department = require("../models/department");
 let userData = null;
 let verificationCode = 0;
 const sendEmail = require("../utils/sendEmail");
 
 router.post("/", async (req, res) => {
-
-  console.log(req.body);
 
   let user = await Salesman.findOne({ email: req.body.email });
   if (user) return res.status(400).send("Email already registered!");
@@ -21,6 +19,8 @@ router.post("/", async (req, res) => {
     return res.status(400).send("Department not found");
   }
   
+  console.log(req.body);
+
   userData = req.body;
 
   verificationCode = Math.floor(100000 + Math.random() * 900000);
@@ -59,6 +59,7 @@ router.post("/", async (req, res) => {
 });
 
 router.post("/code", async (req, res) => {
+  
   try {
     if (req.body.forgotPassword === true && req.body.code) {
       if (verificationCode == req.body.code) {
@@ -68,16 +69,24 @@ router.post("/code", async (req, res) => {
         return res.status(400).send("Invalid Verification Code!");
       }
     }
-    if (verificationCode == req.body.code) {
+
+    if (verificationCode === parseInt(req.body.code)) {
       verificationCode = 0;
+      console.log(userData);
       let salesman = new Salesman({
         ...userData,
       });
-      await salesman.save();
 
-      res.send(true);
-    } else return res.status(400).send("Invalid Verification Code!");
+      salesman = await salesman.save();
+      console.log(salesman);
+
+      return res.send(salesman);
+    } else {
+      console.log("codes matched failed");
+      return res.status(400).send("Invalid Verification Code!");
+    }
   } catch (error) {
+    console.log(error);
     return res.status(500).send("Internal server error");
   }
 });

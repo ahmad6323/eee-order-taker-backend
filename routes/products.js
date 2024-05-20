@@ -21,8 +21,23 @@ router.post("/", upload.any('imageUrl',12), async (req, res) => {
     // Array to store the paths of the saved images
     const imagePaths = [];
 
-    imageUrl && imageUrl.length > 0 && imageUrl.forEach((base64, index) => {
-      const buffer = Buffer.from(base64, 'base64');
+    if(imageUrl && imageUrl.length > 0){
+      imageUrl.forEach((base64, index) => {
+        const buffer = Buffer.from(base64, 'base64');
+        const timestamp = new Date().getTime();
+        const imageName = `${name}_${timestamp}_product_image${index}.png`;
+        const imagePath = path.join(__dirname, '../public/products', imageName);
+  
+        fs.writeFile(imagePath, buffer, err => {
+          if (err) {
+            console.error('Error saving the image:', err);
+          }
+          // Add the image path to the array
+          imagePaths.push(imageName);
+        });
+      });
+    }else{
+      const buffer = Buffer.from(imageUrl, 'base64');
       const timestamp = new Date().getTime();
       const imageName = `${name}_${timestamp}_product_image${index}.png`;
       const imagePath = path.join(__dirname, '../public/products', imageName);
@@ -34,7 +49,7 @@ router.post("/", upload.any('imageUrl',12), async (req, res) => {
         // Add the image path to the array
         imagePaths.push(imageName);
       });
-    });
+    }
 
     const existingSubCat = await SubCategory.findById(category).populate("parent_id");
     if (!existingSubCat){

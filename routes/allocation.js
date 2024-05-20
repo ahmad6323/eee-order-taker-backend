@@ -8,72 +8,83 @@ const ProductVariation = require("../models/productVariation");
 // Create a new product allocation
 router.post("/", async (req, res) => {
   try {
-    const { error } = validate(req.body);
-    if (error) return res.status(400).send(error.details[0].message);
 
-    const { salesmanId, productId, allocations } = req.body;
+    const { salesmanId, allocations } = req.body;
 
-    // Check if the product exists
-    const product = await Product.findById(productId);
-    if (!product) {
-      return res.status(404).send("Product not found");
-    }
-    const salesman = await Salesman.findById(salesmanId);
+    // ensure salesman is valid
+    const salesman = await Salesman.findById(salesmanId.value);
     if (!salesman) {
       return res.status(404).send("Salesman not found");
     }
+      
+    // ensure all variations are valid 
+    const variationIds = allocations.map((alloc)=>{
+      return alloc.productId.length > 0 && alloc.productId;
+    }); 
 
-    // Check if the requested quantities are available
-    for (const allocation of allocations) {
-      const { name, sizes } = allocation;
-      const productColor = product.colors.find((c) => c.name === name);
-      if (!productColor) {
-        return res
-          .status(400)
-          .send(`Color '${name}' not available for product`);
+    const variations = await ProductVariation.find({
+      _id: {
+        $in: variationIds
       }
-
-      for (const [size, quantity] of Object.entries(sizes)) {
-        if (productColor.sizes[size] < quantity) {
-          return res
-            .status(400)
-            .send(`Requested quantity for size '${size}' exceeds availability`);
-        }
-      }
-    }
-
-    // Update product quantities
-    for (const allocation of allocations) {
-      const { name, sizes } = allocation;
-      const productColor = product.colors.find((c) => c.name === name);
-      for (const [size, quantity] of Object.entries(sizes)) {
-        productColor.sizes[size] -= quantity;
-      }
-    }
-    await product.save();
-
-    // Create product allocation
-    const productAllocation = new ProductAllocation({
-      salesmanId,
-      productId,
-      allocations,
     });
-    await productAllocation.save();
 
-    res.status(201).send(productAllocation);
+    if(variations.length !== allocations.length){
+      return res.status(400).send("Problems in product variations");
+    }
+    
+    const productsList = allocations.map((alloc)=>{
+      return {
+        variation: alloc.productId,
+        quantity: alloc.quantity
+      }
+    });
+
+    // assign
+    let assignedAllocations = new ProductAllocation({
+      salesmanId: salesmanId.value,
+      products: productsList
+    });
+
+    assignedAllocations = await assignedAllocations.save();
+
+    res.status(201).send(assignedAllocations);
   } catch (error) {
     res.status(400).send(error.message);
   }
 });
 
-// Get all product allocations
-router.get("/", async (req, res) => {
+// Get all product allocations for salesman
+router.get("/:id", async (req, res) => {
   try {
-    const productAllocations = await ProductAllocation.find()
-      .populate("salesmanId", "name")
-      .populate("productId", "name");
-
-    res.send(productAllocations);
+    const allocations = await ProductAllocation.findOne({
+      salesmanId: req.params.id
+    })
+      .populate({
+        path: 'products.variation',
+        populate: [
+          {
+            path: 'productId',
+            model: 'Product',
+            select: "name price description"
+          },
+          {
+            path: "size",
+            model: "Size",
+            select: "size"
+          },
+          {
+            path: "color",
+            model: "Color",
+            select: "color"
+          }
+        ],
+      }).populate({
+        path: "salesmanId",
+        model: "Salesman",
+        select: "name phone email"
+      });
+      
+    res.send(allocations);
   } catch (error) {
     res.status(500).send(error.message);
   }
