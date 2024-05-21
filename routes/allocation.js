@@ -85,11 +85,10 @@ router.get("/:id", async (req, res) => {
       }
     );
 
-    // Assuming `allocations.products` contains the list of products
     const groupedProducts = groupProductsByProductId(allocations.products);
     
-    // If you need it in an array format instead of an object
     const groupedProductsArray = Object.values(groupedProducts);
+
     res.send(groupedProductsArray);
   } catch (error) {
     console.log(error);
@@ -97,24 +96,66 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// utility
+// Get all product allocations for salesman
+router.get("/:id/:userId", async (req, res) => {
+  try {
+    const allocations = await ProductAllocation.findOne({
+      salesmanId: req.params.userId,
+    })
+      .populate({
+        path: 'products.variation',
+        match: {
+          productId: req.params.id
+        },
+        select: "color size sku",
+        populate: [
+          {
+            path: 'productId',
+            model: 'Product',
+            select: "name price description imageUrl"
+          },
+          {
+            path: "size",
+            model: "Size",
+            select: "size"
+          },
+          {
+            path: "color",
+            model: "Color",
+            select: "color"
+          }
+        ],
+      }
+    );
+
+    const processed = post_process(allocations);
+    res.send(processed);
+  } catch (error) {
+    console.log(error);
+    res.status(500).send(error.message);
+  }
+});
+
+// group all variations based on *shared* productId
 const groupProductsByProductId = (products) => {
   return products.reduce((acc, product) => {
     const productId = product.variation.productId._id.toString();
     if (!acc[productId]) {
       acc[productId] = {
         productDetails: product.variation.productId,
-        variations: []
+        variations: [],
       };
     }
     acc[productId].variations.push({
       _id: product.variation._id,
       size: product.variation.size,
-      color: product.variation.color
+      color: product.variation.color,
+      quantity: product.quantity,
     });
     return acc;
   }, {});
 };
+
 
 // Get product allocation by ID
 router.get("/:id", async (req, res) => {
@@ -197,5 +238,29 @@ router.get("/variations/:id", async (req, res) => {
     res.status(500).send(error.message);
   }
 });
+
+
+// utility
+// post-process the data for better visualization
+const post_process = (data)=>{
+  const variations =  data.products.map(product => ({
+    variationId: product.variation._id,
+    price: product.variation.productId.price,
+    color: product.variation.color,
+    size: product.variation.size,
+    quantity: product.quantity
+  }));
+
+  const product = {
+    productId: data.products[0].variation.productId._id,
+    name: data.products[0].variation.productId.name,
+    imageUrl: data.products[0].variation.productId.imageUrl,
+    description: data.products[0].variation.productId.description,
+    price: data.products[0].variation.productId.price,
+    variations
+  };
+
+  return product;
+}
 
 module.exports = router;
