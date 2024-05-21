@@ -65,6 +65,41 @@ router.get("/:id", async (req, res) => {
           {
             path: 'productId',
             model: 'Product',
+            select: "name price description imageUrl"
+          },
+          {
+            path: "size",
+            model: "Size",
+            select: "size"
+          },
+          {
+            path: "color",
+            model: "Color",
+            select: "color"
+          }
+        ],
+      }).populate({
+        path: "salesmanId",
+        model: "Salesman",
+        select: "name phone email"
+      });
+    res.send(allocations);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
+
+
+// Get all product allocations
+router.get("/", async (req, res) => {
+  try {
+    const allocations = await ProductAllocation.
+    find().populate({
+        path: 'products.variation',
+        populate: [
+          {
+            path: 'productId',
+            model: 'Product',
             select: "name price description"
           },
           {
@@ -83,7 +118,6 @@ router.get("/:id", async (req, res) => {
         model: "Salesman",
         select: "name phone email"
       });
-      
     res.send(allocations);
   } catch (error) {
     res.status(500).send(error.message);
