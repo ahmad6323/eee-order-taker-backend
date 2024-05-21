@@ -65,7 +65,7 @@ router.get("/:id", async (req, res) => {
           {
             path: 'productId',
             model: 'Product',
-            select: "name price description"
+            select: "name price description imageUrl"
           },
           {
             path: "size",
@@ -82,13 +82,39 @@ router.get("/:id", async (req, res) => {
         path: "salesmanId",
         model: "Salesman",
         select: "name phone email"
-      });
-      
-    res.send(allocations);
+      }
+    );
+
+    // Assuming `allocations.products` contains the list of products
+    const groupedProducts = groupProductsByProductId(allocations.products);
+    
+    // If you need it in an array format instead of an object
+    const groupedProductsArray = Object.values(groupedProducts);
+    res.send(groupedProductsArray);
   } catch (error) {
+    console.log(error);
     res.status(500).send(error.message);
   }
 });
+
+// utility
+const groupProductsByProductId = (products) => {
+  return products.reduce((acc, product) => {
+    const productId = product.variation.productId._id.toString();
+    if (!acc[productId]) {
+      acc[productId] = {
+        productDetails: product.variation.productId,
+        variations: []
+      };
+    }
+    acc[productId].variations.push({
+      _id: product.variation._id,
+      size: product.variation.size,
+      color: product.variation.color
+    });
+    return acc;
+  }, {});
+};
 
 // Get product allocation by ID
 router.get("/:id", async (req, res) => {
