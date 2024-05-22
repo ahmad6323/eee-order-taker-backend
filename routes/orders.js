@@ -65,11 +65,47 @@ router.post("/", async (req, res) => {
 // GET endpoint to retrieve all orders
 router.get("/", async (req, res) => {
   try {
+    // Fetch all orders from the database
     const orders = await Order.find();
-    res.send(orders);
-  } catch (error) {
-    console.error("Error fetching orders:", error);
-    res.status(500).send("Internal Server Error");
+
+    let totalBill = 0;
+
+    const processedOrders = orders.map((order) => {
+      const processedOrder = {
+        salesmanName: order.items[0].salesman,
+        products: [],
+        location: {
+          latitude: order.location.coordinates[0],
+          longitude: order.location.coordinates[1]
+        },
+        totalBill: 0
+      };
+
+      for (const item of order.items) {
+        const product = item.productId; 
+
+        const variations = item.variations.map((variation) => ({
+          sku: variation.sku,
+          quantity: variation.quantity,
+        }));
+
+        const totalPrice = item.pricePerUnit * variations.reduce((acc, variation) => acc + variation.quantity, 0);
+        totalBill += parseInt(totalPrice);
+
+        processedOrder.totalBill = totalBill;
+        processedOrder.products.push({  
+          name: product.name,
+          imageUrl: product.imageUrl,
+          variations,
+          totalPrice: totalPrice.toFixed(2),
+        });
+      }
+      return processedOrder;
+    });
+    
+    res.send(processedOrders);
+  } catch (err) {
+    console.error('Error processing orders:', err);
   }
 });
 
