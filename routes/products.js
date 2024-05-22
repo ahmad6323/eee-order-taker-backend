@@ -2,20 +2,20 @@ const express = require("express");
 const router = express.Router();
 const Product = require("../models/product");
 const { Category } = require("../models/category");
-const { Department } = require("../models/department");
+const Department = require("../models/department");
 const ProductVariation = require("../models/productVariation");
 const multer = require('multer');
 const upload = multer({dest: "./public/products/"});
 const Color = require("../models/colors");
 const Size = require("../models/size");
-const SubCategory = require("../models/subCategory");
+const SubCategory = require('../models/subcategory');
 const fs = require('fs');
 const path = require('path');
 
 // CREATE
 router.post("/", upload.any('imageUrl',12), async (req, res) => {
   try {
-
+    
     const { imageUrl, name, category, department, price, colors, sizes, description } = req.body;
 
     // Array to store the paths of the saved images
@@ -35,19 +35,6 @@ router.post("/", upload.any('imageUrl',12), async (req, res) => {
           // Add the image path to the array
           imagePaths.push(imageName);
         });
-      });
-    }else{
-      const buffer = Buffer.from(imageUrl, 'base64');
-      const timestamp = new Date().getTime();
-      const imageName = `${name}_${timestamp}_product_image${index}.png`;
-      const imagePath = path.join(__dirname, '../public/products', imageName);
-
-      fs.writeFile(imagePath, buffer, err => {
-        if (err) {
-          console.error('Error saving the image:', err);
-        }
-        // Add the image path to the array
-        imagePaths.push(imageName);
       });
     }
 
@@ -72,16 +59,7 @@ router.post("/", upload.any('imageUrl',12), async (req, res) => {
       department: foundDeparts,
       imageUrl: imagePaths
     });
-    
-    // update images
-    if(req.files && req.files.length > 0){
-      const filePaths = req.files.map(file => file.path);
-      // Join file paths into a single comma-separated string
-      const filePathsString = filePaths.join(',');
-      console.log(filePathsString);  
-      product.imageUrl = filePathsString;
-    }
-    
+
     // save product
     product = await product.save();
     
@@ -125,7 +103,7 @@ router.post("/", upload.any('imageUrl',12), async (req, res) => {
     
     res.status(200).send("Successfull");
   } catch (err) {
-    console.error(err.message);
+    console.error(err);
     res.status(500).send("Server Error");
   }
 });
@@ -239,7 +217,8 @@ async function generateSKU() {
     if(lastDoc.length === 0){
       return 0;
     }
-    let count = parseInt(lastDoc[0].sku);
+    const sku = lastDoc[0].SKU.split("-");
+    let count = parseInt(sku[2]);
     count++;
     return count;
   }catch(ex){

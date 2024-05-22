@@ -1,92 +1,89 @@
-const Joi = require("joi");
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
 
-const orderSchema = new mongoose.Schema({
-  salesman: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Salesman", // Reference to the Salesman model
+const orderVariation = new Schema({
+  maxQuantity: {
+    type: Number,
     required: true,
-  },
-  pname: {
-    type: String,
-    required: true,
-    minlength: 3,
-    maxlength: 255,
-  },
-  pdepartment: {
-    _id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Department", // Reference to the Department model
-    },
-    name: String,
-  },
-  pcategory: {
-    _id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Category", // Reference to the Category model
-    },
-    mainCategory: String,
-    subCategory: String,
   },
   quantity: {
     type: Number,
     required: true,
-    min: 1,
   },
-  color: {
-    type: String,
-    minlength: 3,
-    maxlength: 50,
-  },
-  size: {
-    type: String,
-    minlength: 1,
-    maxlength: 20,
-  },
-  price: {
-    type: Number,
-    required: true,
-    min: 0,
-  },
-  pimage: [
-    {
-      type: String, // Array of image URLs
-      required: true,
-    },
-  ],
-  longitude: {
+  sku: {
     type: String,
     required: true,
   },
-  latitude: {
-    type: String,
-    required: true,
+  variationId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "ProductVariation",
   },
 });
 
-const Order = mongoose.model("Order", orderSchema);
+const itemSchema = new Schema({
+  salesman: {
+    type: String,
+    required: true,
+  },
+  productId: {
+    type: String,
+    required: true,
+  },
+  name: {
+    type: String,
+    required: true,
+  },
+  image: {
+    type: String,
+    required: true,
+  },
+  pricePerUnit: {
+    type: Number,
+    required: true,
+  },
+  variations: [orderVariation],
+  department: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Department",
+  },
+  category: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Category',
+  },
+  departmentName: [
+    {
+      type: String,
+    }
+  ],
+  categoryName: {
+    type: String,
+  },
+});
 
-function validateOrder(order) {
-  const schema = Joi.array().items(
-    Joi.object({
-      salesman: Joi.string().required(),
-      pname: Joi.string().min(3).max(255).required(),
-      pdepartment: Joi.string().required(),
-      pcategory: Joi.string().required(),
-      quantity: Joi.number().min(1).required(),
-      color: Joi.string().min(3).max(50),
-      size: Joi.string().min(1).max(20),
-      price: Joi.number().min(0).required(),
-      pimage: Joi.array().items(Joi.string().required()).required(),
-      longitude: Joi.number().required(),
-      latitude: Joi.number().required(),
-    })
-  );
+const orderSchema = new Schema({
+  items: [itemSchema],
+  totalPrice: {
+    type: Number,
+  },
+  totalQuantity: {
+    type: Number,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+  location: {
+    type: {
+      type: String,
+      enum: ['Point'],
+      required: true,
+    },
+    coordinates: {
+      type: [Number],
+      required: true,
+    }
+  },
+});
 
-  return Joi.validate(order, schema);
-}
-
-module.exports = {
-  Order: Order,
-  validate: validateOrder,
-};
+const Order = mongoose.model('Order', orderSchema);
+module.exports = Order;

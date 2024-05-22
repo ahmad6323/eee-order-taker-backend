@@ -61,7 +61,6 @@ router.get("/email/:email", async (req, res) => {
 });
 
 // router.put("/:id", async (req, res) => {
-//   console.log(0);
 //   const { error } = validate(req.body);
 //   if (error) return res.status(400).send(error.details[0].message);
 
@@ -114,7 +113,6 @@ router.put("/updatePass", async (req, res) => {
     await user.save();
     res.status(200).json({ update: true });
     FPEmail = {};
-    console.log("done");
   } catch (error) {
     console.error("Error updating password:", error);
     res.status(500).json({ error: "Internal Server Error" });
@@ -122,7 +120,6 @@ router.put("/updatePass", async (req, res) => {
 });
 
 router.post("/code", async (req, res) => {
-  console.log(8);
   if (req.body.forgotPassword === true && req.body.code) {
     if (verificationCode == req.body.code) {
       verificationCode = 0;

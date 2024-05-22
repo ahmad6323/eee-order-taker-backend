@@ -18,8 +18,6 @@ router.post("/", async (req, res) => {
   if(foundDeparts.length !== req.body.department.length){
     return res.status(400).send("Department not found");
   }
-  
-  console.log(req.body);
 
   userData = req.body;
 
@@ -72,13 +70,11 @@ router.post("/code", async (req, res) => {
 
     if (verificationCode === parseInt(req.body.code)) {
       verificationCode = 0;
-      console.log(userData);
       let salesman = new Salesman({
         ...userData,
       });
 
       salesman = await salesman.save();
-      console.log(salesman);
 
       return res.send(salesman);
     } else {

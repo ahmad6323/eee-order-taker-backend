@@ -1,4 +1,3 @@
-const Joi = require("joi");
 const mongoose = require("mongoose");
 
 const subCatSchema = new mongoose.Schema({
@@ -12,12 +11,12 @@ const subCatSchema = new mongoose.Schema({
     type: String,
     required: true, 
   },
-  parent_id : {
-    type: mongoose.Schema.Types.ObjectId, 
+  parent_id: {
+    type: mongoose.Schema.Types.ObjectId,
     ref: "Category",
   }
 });
 
-const SubCategory = mongoose.model("SubCategory", subCatSchema);
+const SubCategory = mongoose.models.SubCategory || mongoose.model("SubCategory", subCatSchema);
 
 module.exports = SubCategory;

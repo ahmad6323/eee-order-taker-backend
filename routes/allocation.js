@@ -4,6 +4,7 @@ const ProductAllocation = require("../models/allocation");
 const Product = require("../models/product");
 const Salesman = require("../models/salesman");
 const ProductVariation = require("../models/productVariation");
+const c = require("config");
 
 // Create a new product allocation
 router.post("/", async (req, res) => {
@@ -53,7 +54,47 @@ router.post("/", async (req, res) => {
   }
 });
 
-// Get all product allocations for salesman
+// get all allocations for admin
+router.get("/", async (req, res) => {
+  try {
+    const allocations = await ProductAllocation.find()
+      .populate({
+        path: 'products.variation',
+        populate: [
+          {
+            path: 'productId',
+            model: 'Product',
+            select: "name price description imageUrl"
+          },
+          {
+            path: "size",
+            model: "Size",
+            select: "size"
+          },
+          {
+            path: "color",
+            model: "Color",
+            select: "color"
+          }
+        ],
+      }).populate({
+        path: "salesmanId",
+        model: "Salesman",
+        select: "name phone email"
+      }
+    );
+
+    const dataFormatted = transformData(allocations);
+
+    res.send(dataFormatted);
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).send(error.message);
+  }
+});
+
+// Get all product allocations for salesman - salesman product list page
 router.get("/:id", async (req, res) => {
   try {
     const allocations = await ProductAllocation.findOne({
@@ -85,19 +126,20 @@ router.get("/:id", async (req, res) => {
       }
     );
 
-    const groupedProducts = groupProductsByProductId(allocations.products);
-    
-    const groupedProductsArray = Object.values(groupedProducts);
+    if(allocations && allocations.products){
+      const groupedProducts = groupProductsByProductId(allocations.products);
+      const groupedProductsArray = Object.values(groupedProducts);
+      res.send(groupedProductsArray);
+    }
 
-    res.send(groupedProductsArray);
   } catch (error) {
     console.log(error);
     res.status(500).send(error.message);
   }
 });
 
-// Get all product allocations for salesman
-router.get("/:id/:userId", async (req, res) => {
+// Get product allocations for salesman - salesman product detail page
+router.get("/get_allocations/:id/:userId", async (req, res) => {
   try {
     const allocations = await ProductAllocation.findOne({
       salesmanId: req.params.userId,
@@ -107,7 +149,7 @@ router.get("/:id/:userId", async (req, res) => {
         match: {
           productId: req.params.id
         },
-        select: "color size sku",
+        select: "color size SKU",
         populate: [
           {
             path: 'productId',
@@ -136,25 +178,6 @@ router.get("/:id/:userId", async (req, res) => {
   }
 });
 
-// group all variations based on *shared* productId
-const groupProductsByProductId = (products) => {
-  return products.reduce((acc, product) => {
-    const productId = product.variation.productId._id.toString();
-    if (!acc[productId]) {
-      acc[productId] = {
-        productDetails: product.variation.productId,
-        variations: [],
-      };
-    }
-    acc[productId].variations.push({
-      _id: product.variation._id,
-      size: product.variation.size,
-      color: product.variation.color,
-      quantity: product.quantity,
-    });
-    return acc;
-  }, {});
-};
 
 
 // Get product allocation by ID
@@ -196,7 +219,7 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-// get all variations for the salesman
+// get all variations for the salesman - get variations by salesman id to assign to a salesman
 router.get("/variations/:id", async (req, res) => {
   try {
 
@@ -214,7 +237,6 @@ router.get("/variations/:id", async (req, res) => {
         $in: departmentsId
       }
     }).select("_id");
-
 
     const variations = await ProductVariation.find({
       productId: {
@@ -242,25 +264,125 @@ router.get("/variations/:id", async (req, res) => {
 
 // utility
 // post-process the data for better visualization
-const post_process = (data)=>{
-  const variations =  data.products.map(product => ({
-    variationId: product.variation._id,
-    price: product.variation.productId.price,
-    color: product.variation.color,
-    size: product.variation.size,
-    quantity: product.quantity
-  }));
+const post_process = (data) => {
+  let name = "";
+  let imageUrl = [];
+  let description = "";
+  let productId = "";
+  let price = 0;
 
+  const variations = data.products.map((product) => {
+    if (product.variation) {
+      name = product.variation.productId.name;
+      imageUrl = product.variation.productId.imageUrl;
+      description = product.variation.productId.description;
+      productId = product.variation.productId._id.toHexString()
+      price = product.variation.productId.price;
+      return {
+        variationId: product.variation._id,
+        price: product.variation.productId.price,
+        color: product.variation.color,
+        size: product.variation.size,
+        quantity: product.quantity,
+        sku: product.variation.SKU,
+      };
+    } else {
+      return null; 
+    }
+  }).filter(variation => variation !== null);
+  
   const product = {
-    productId: data.products[0].variation.productId._id,
-    name: data.products[0].variation.productId.name,
-    imageUrl: data.products[0].variation.productId.imageUrl,
-    description: data.products[0].variation.productId.description,
-    price: data.products[0].variation.productId.price,
-    variations
+    productId,
+    name,
+    imageUrl,
+    description,
+    price,
+    variations,
   };
 
   return product;
+};
+
+// take all allocations, group them by product
+function groupProductsByProductIds(data) {
+  const groupedProducts = {};
+
+  for (const order of data) {
+    for (const product of order.products) {
+      const productId = product.variation.productId._id.toString();
+
+      if (!groupedProducts[productId]) {
+        groupedProducts[productId] = {
+          productId: product.variation.productId,
+          variations: [],
+        };
+      }
+
+      groupedProducts[productId].variations.push({
+        ...product.variation,
+        quantity: product.quantity,
+      });
+    }
+  }
+
+  return groupedProducts;
+}
+
+
+// group all variations based on *shared* productId
+const groupProductsByProductId = (products) => {
+  return products.reduce((acc, product) => {
+    const productId = product.variation.productId._id.toString();
+    if (!acc[productId]) {
+      acc[productId] = {
+        productDetails: product.variation.productId,
+        variations: [],
+      };
+    }
+    acc[productId].variations.push({
+      _id: product.variation._id,
+      size: product.variation.size,
+      color: product.variation.color,
+      quantity: product.quantity,
+      sku: product.variation.SKU
+    });
+    return acc;
+  }, {});
+};
+
+function transformData(data) {
+  const transformedData = [];
+  for (const order of data) {
+    const salesman = order.salesmanId;
+    const products = {};
+    for (const product of order.products) {
+      const variation = product.variation;
+      const productId = variation.productId._id;
+      if (!products[productId]) {
+        products[productId] = {
+          productId: variation.productId._id.toHexString(),
+          name: variation.productId.name,
+          imageUrl: variation.productId.imageUrl,
+          price: variation.productId.price,
+          description: variation.productId.description,
+          variations: [],
+        };
+      }
+      products[productId].variations.push({
+        _id: variation._id.toHexString(),
+        color: variation.color.color,
+        size: variation.size.size,
+        SKU: variation.SKU,
+        quantity: product.quantity,
+      });
+    }
+    transformedData.push({
+      _id: order._id,
+      salesmanId: salesman,
+      products: Object.values(products),
+    });
+  }
+  return transformedData;
 }
 
 module.exports = router;
