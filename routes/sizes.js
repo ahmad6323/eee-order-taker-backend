@@ -7,19 +7,26 @@ router.post("/", async (req, res) => {
   // Validate the request body
   const { size } = req.body;
 
-  // Check if size with the same value already exists
-  let existingSize = await Size.findOne({ size: size });
-  if (existingSize) {
-    return res.status(400).send("Size with this value already exists.");
-  }
+  var sizes = size.split(",");
+  let sizesAdded = [];
 
-  // If not, save the new size
-  let newSize = new Size({
-    size: size,
-  });
+  sizes.map(async (size) => {
+    // Check if size with the same value already exists
+    let existingSize = await Size.findOne({ size: size });
+    if (existingSize) {
+      return res.status(400).send("Size with this value already exists.");
+    }
+    
+    // If not, save the new size
+    let newSize = new Size({
+      size: size,
+    });
+    
+    newSize = await newSize.save();
+    sizesAdded.push(newSize);
+  })
 
-  newSize = await newSize.save();
-  res.send(newSize);
+  res.send(sizesAdded);
 });
 
 // GET operation to retrieve all sizes

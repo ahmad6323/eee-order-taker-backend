@@ -23,6 +23,9 @@ const salesmanSchema = new mongoose.Schema({
     required: true,
     minlength: 8,
   },
+  image: {
+    type: String,
+  },
   role: {
     type: String,
     default: "salesman",

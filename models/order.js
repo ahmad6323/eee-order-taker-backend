@@ -72,6 +72,13 @@ const orderSchema = new Schema({
     type: Date,
     default: Date.now,
   },
+  feedBack: {
+    type: String,
+  },
+  creation_time: {
+    type: Date,
+    default: Date.now()
+  },
   location: {
     type: {
       type: String,

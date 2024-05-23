@@ -6,6 +6,9 @@ let userData = null;
 let verificationCode = 0;
 const sendEmail = require("../utils/sendEmail");
 const Order = require("../models/order");
+const fs = require('fs');
+const path = require('path');
+
 
 router.post("/", async (req, res) => {
 
@@ -20,7 +23,22 @@ router.post("/", async (req, res) => {
     return res.status(400).send("Department not found");
   }
 
+  const { image, name  } = req.body;
+  const timestamp = new Date().getTime();
+  const imageName = `${name}_${timestamp}_salesman.png`;
+  if(image){
+    const buffer = Buffer.from(image, 'base64');
+    const imagePath = path.join(__dirname, '../public/salesman', imageName);
+
+    fs.writeFile(imagePath, buffer, err => {
+      if (err) {
+        console.error('Error saving the image:', err);
+      }
+    });
+  }
+
   userData = req.body;
+  userData.image = imageName;
 
   verificationCode = Math.floor(100000 + Math.random() * 900000);
   sendEmail(userData.email, verificationCode);

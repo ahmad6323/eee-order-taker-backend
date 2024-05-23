@@ -99,7 +99,6 @@ router.post("/forgot", async (req, res) => {
 });
 
 router.put("/updatePass", async (req, res) => {
-  console.log(88);
   try {
     const { email, password } = req.body;
     const user = await Admin.findOne({ email });

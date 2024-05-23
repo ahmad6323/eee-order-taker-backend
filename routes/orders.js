@@ -73,11 +73,14 @@ router.get("/", async (req, res) => {
 
     const processedOrders = orders.map(async (order) => {
 
-      const salesman = await Salesman.findById(order.items[0].salesman).select("name"); 
+      const salesman = await Salesman.findById(order.items[0].salesman).select("_id name image phone"); 
 
       const processedOrder = {
         salesmanId: salesman._id,
         salesmanName: salesman.name,
+        image: salesman.image,
+        phone: salesman.phone,
+        feedBack: order.feedBack,
         products: [],
         location: {
           latitude: order.location.coordinates[0],
@@ -135,7 +138,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET endpoint to retrieve all orders
+// GET endpoint to retrieve dashboard content - count sales etc
 router.get("/profile_screen", async (req, res) => {
   try {
     // Fetch all orders from the database
@@ -159,6 +162,74 @@ router.get("/profile_screen", async (req, res) => {
     console.error('Error processing orders:', err);
   }
 });
+
+
+// get salesman's order by salesman's id
+router.get("/salesman_orders/:id", async (req, res) => {
+  try {
+    const orders = await Order.find({ 'items.salesman': req.params.id });
+    
+    let totalBill = 0;
+
+    const processedOrders = orders.map(async (order) => {
+
+      const processedOrder = {
+        orderId: order._id,
+        products: [],
+        location: {
+          latitude: order.location.coordinates[0],
+          longitude: order.location.coordinates[1]
+        },
+        totalBill: 0
+      };
+
+      for (const item of order.items) {
+        const product = item.productId; 
+
+        // get the product using productId
+        const findProductById = await Product.findById(product);
+        
+        let quantityOrdered = 0;
+
+        const variations = item.variations.map((variation) => {
+          quantityOrdered = quantityOrdered + variation.quantity;
+          return {
+            sku: variation.sku,
+            quantity: variation.quantity,
+          }
+        });
+
+        const totalPrice = item.pricePerUnit * variations.reduce((acc, variation) => acc + variation.quantity, 0);
+        totalBill += parseInt(totalPrice);
+
+        processedOrder.totalBill = totalBill;
+        processedOrder.products.push({  
+          name: findProductById.name,
+          imageUrl: findProductById.imageUrl,
+          price: findProductById.price,
+          variations,
+          quantityOrdered,
+          totalPrice: totalPrice.toFixed(2),
+        });
+      }
+      return processedOrder;
+    });
+
+    Promise.all(processedOrders)
+      .then((data) => {
+        res.send(data);
+      })
+      .catch((error) => {
+        // Handle the error appropriately
+        console.error(error);
+        res.status(500).send({ error: 'An error occurred while processing orders' });
+      }
+    );
+  } catch (err) {
+    console.error('Error processing orders:', err);
+  }
+});
+
 
 
 // format price

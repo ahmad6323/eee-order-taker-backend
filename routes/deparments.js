@@ -3,24 +3,33 @@ const router = express.Router();
 const Department = require("../models/department");
 
 router.post("/", async (req, res) => {
-  const { error } = validate(req.body);
-  if (error) return res.status(400).send(error.details[0].message);
+ 
+  try{
+    const { name } = req.body;
 
-  const { name } = req.body;
+    var departments = name.split(",");
+    let departmentsAdded = [];
+    
+    departments.map(async (department) => {
+      // Check if department with the same name already exists
+      let existingDepartment = await Department.findOne({ name: department });
 
-  // Check if department with the same name already exists
-  let existingDepartment = await Department.findOne({ name: name });
-  if (existingDepartment) {
-    return res.status(400).send("Department with this name already exists.");
+      if (!existingDepartment) {
+        // If not, save the new department
+        let departmentAdd = new Department({
+          name: department.trim(),
+        });
+        departmentAdd = await departmentAdd.save();
+        departmentsAdded.push(departmentAdd);
+      }else{
+        departmentsAdded.push(existingDepartment);
+      }
+    })
+
+    res.send(departmentsAdded);
+  }catch(ex){
+    console.log(ex);
   }
-
-  // If not, save the new department
-  let department = new Department({
-    name: name,
-  });
-
-  department = await department.save();
-  res.send(department);
 });
 
 router.get("/", async (req, res) => {
@@ -39,8 +48,6 @@ router.delete("/:id", async (req, res) => {
 });
 
 router.put("/:id", async (req, res) => {
-  const { error } = validate(req.body);
-  if (error) return res.status(400).send(error.details[0].message);
   const { name } = req.body;
 
   const department = await Department.findByIdAndUpdate(
