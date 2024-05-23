@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const Order = require('../models/order');
 const Product = require("../models/product");
+const Salesman = require("../models/salesman");
 
 // POST endpoint to create a new order
 router.post("/", async (req, res) => {
@@ -70,9 +71,13 @@ router.get("/", async (req, res) => {
 
     let totalBill = 0;
 
-    const processedOrders = orders.map((order) => {
+    const processedOrders = orders.map(async (order) => {
+
+      const salesman = await Salesman.findById(order.items[0].salesman).select("name"); 
+
       const processedOrder = {
-        salesmanName: order.items[0].salesman,
+        salesmanId: salesman._id,
+        salesmanName: salesman.name,
         products: [],
         location: {
           latitude: order.location.coordinates[0],
@@ -84,30 +89,97 @@ router.get("/", async (req, res) => {
       for (const item of order.items) {
         const product = item.productId; 
 
-        const variations = item.variations.map((variation) => ({
-          sku: variation.sku,
-          quantity: variation.quantity,
-        }));
+        // get the product using productId
+        const findProductById = await Product.findById(product);
+        
+        let quantityOrdered = 0;
+
+        const variations = item.variations.map((variation) => {
+          quantityOrdered = quantityOrdered + variation.quantity;
+          return {
+            sku: variation.sku,
+            quantity: variation.quantity,
+          }
+        });
 
         const totalPrice = item.pricePerUnit * variations.reduce((acc, variation) => acc + variation.quantity, 0);
         totalBill += parseInt(totalPrice);
 
         processedOrder.totalBill = totalBill;
         processedOrder.products.push({  
-          name: product.name,
-          imageUrl: product.imageUrl,
+          name: findProductById.name,
+          imageUrl: findProductById.imageUrl,
+          price: findProductById.price,
           variations,
+          quantityOrdered,
           totalPrice: totalPrice.toFixed(2),
         });
       }
       return processedOrder;
     });
+
+    Promise.all(processedOrders)
+      .then((data) => {
+        res.send(data);
+      })
+      .catch((error) => {
+        // Handle the error appropriately
+        console.error(error);
+        res.status(500).send({ error: 'An error occurred while processing orders' });
+      }
+    );
+
     
-    res.send(processedOrders);
   } catch (err) {
     console.error('Error processing orders:', err);
   }
 });
 
+// GET endpoint to retrieve all orders
+router.get("/profile_screen", async (req, res) => {
+  try {
+    // Fetch all orders from the database
+    const orders = await Order.find();
+
+    let totalSales = calculateTotalBill(orders);
+
+    const totalProducts = await Product.countDocuments({});
+    const totalSalesman = await Salesman.countDocuments({});
+
+    const data = {
+      totalSales: formatPrice(totalSales),
+      orders: orders.length,
+      totalProducts,
+      totalSalesman
+    };
+
+    res.send(data);
+
+  } catch (err) {
+    console.error('Error processing orders:', err);
+  }
+});
+
+
+// format price
+const formatPrice = (price)=>{
+  return price.toLocaleString('en-US', {
+    style: 'currency',
+    currency: 'PKR',
+  })
+}
+// calculate total sales - admin
+function calculateTotalBill(data) {
+  let totalSales = 0;
+  data.map((item)=>{
+    totalSales = totalSales + parseInt(item.totalPrice);
+  });
+  return totalSales
+}
+
+// get product by id
+const getProductById = async (id)=>{
+  return await Product.findById(id);
+}
 
 module.exports = router;

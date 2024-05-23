@@ -5,6 +5,7 @@ const Department = require("../models/department");
 let userData = null;
 let verificationCode = 0;
 const sendEmail = require("../utils/sendEmail");
+const Order = require("../models/order");
 
 router.post("/", async (req, res) => {
 
@@ -28,32 +29,6 @@ router.post("/", async (req, res) => {
     message: "Email Send succefuly",
     email: userData.email,
   });
-
-  // const { error } = validate(req.body);
-  // if (error) return res.status(400).send(error.details[0].message);
-
-  // const { name, cnic, phone, email, password, department } = req.body;
-
-  // Check if salesman with the same email already exists
-  // let existingSalesman = await Salesman.findOne({ email: email });
-  // if (existingSalesman) {
-  //   return res.status(400).send("Salesman with this email already exists.");
-  // }
-
-  // Check if department exists
-
-  // If not, save the new salesman
-  // let salesman = new Salesman({
-  //   name: name,
-  //   cnic: cnic,
-  //   phone: phone,
-  //   email: email,
-  //   password: password,
-  //   department: department,
-  // });
-
-  // salesman = await salesman.save();
-  // res.send(salesman);
 });
 
 router.post("/code", async (req, res) => {
@@ -130,8 +105,13 @@ router.get("/", async (req, res) => {
 });
 
 router.get("/:id", async (req, res) => {
-  const salesman = await Salesman.findById(req.params.id);
-  res.send(salesman);
+  try{
+    console.log(req.params.id);
+    const salesman = await Salesman.findById(req.params.id);
+    res.send(salesman);
+  }catch(error){
+    console.log(error);
+  }
 });
 
 router.delete("/:id", async (req, res) => {
@@ -175,5 +155,48 @@ router.put("/:id", async (req, res) => {
 
   res.send(salesman);
 });
+
+
+
+// GET endpoint to retrieve all orders
+router.get("/dashboard_content/:id", async (req, res) => {
+  try {
+    // Fetch all orders from the database
+    const orders = await Order.find({ 'items.salesman': req.params.id });
+
+    let totalSales = calculateTotalBill(orders);
+
+    const data = {
+      totalSales: formatPrice(totalSales),
+      orders: orders.length,
+    };
+
+    res.send(data);
+
+  } catch (err) {
+    console.error('Error processing orders:', err);
+  }
+});
+
+
+// utility
+
+// format price
+const formatPrice = (price)=>{
+  return price.toLocaleString('en-US', {
+    style: 'currency',
+    currency: 'PKR',
+  })
+}
+// calculate total sales - admin
+function calculateTotalBill(data) {
+  let totalSales = 0;
+  data.map((item)=>{
+    totalSales = totalSales + parseInt(item.totalPrice);
+  });
+  return totalSales
+}
+
+
 
 module.exports = router;
