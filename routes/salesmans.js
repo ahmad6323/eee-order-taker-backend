@@ -11,42 +11,46 @@ const path = require('path');
 
 
 router.post("/", async (req, res) => {
-
-  let user = await Salesman.findOne({ email: req.body.email });
-  if (user) return res.status(400).send("Email already registered!");
-
-  const foundDeparts = await Department.find({
-    _id: { $in: req.body.department }
-  }).select('_id');
-
-  if(foundDeparts.length !== req.body.department.length){
-    return res.status(400).send("Department not found");
-  }
-
-  const { image, name  } = req.body;
-  const timestamp = new Date().getTime();
-  const imageName = `${name}_${timestamp}_salesman.png`;
-  if(image){
-    const buffer = Buffer.from(image, 'base64');
-    const imagePath = path.join(__dirname, '../public/salesman', imageName);
-
-    fs.writeFile(imagePath, buffer, err => {
-      if (err) {
-        console.error('Error saving the image:', err);
-      }
+  try{
+    let user = await Salesman.findOne({ email: req.body.email });
+    if (user) return res.status(400).send("Email already registered!");
+  
+    const foundDeparts = await Department.find({
+      _id: { $in: req.body.department }
+    }).select('_id');
+  
+    if(foundDeparts.length !== req.body.department.length){
+      return res.status(400).send("Department not found");
+    }
+  
+    const { image, name  } = req.body;
+    const timestamp = new Date().getTime();
+    const imageName = `${name}_${timestamp}_salesman.png`;
+    if(image){
+      const buffer = Buffer.from(image, 'base64');
+      const imagePath = path.join(__dirname, '../public/salesman', imageName);
+  
+      fs.writeFile(imagePath, buffer, err => {
+        if (err) {
+          console.error('Error saving the image:', err);
+        }
+      });
+    }
+  
+    userData = req.body;
+    userData.image = imageName;
+  
+    let salesman = new Salesman({
+      ...userData,
     });
+    
+    salesman = await salesman.save();
+  
+    return res.send(salesman);
+  }catch(ex){
+    console.log(ex);
+    res.status(500).send("Internal server error");
   }
-
-  userData = req.body;
-  userData.image = imageName;
-
-  verificationCode = Math.floor(100000 + Math.random() * 900000);
-  sendEmail(userData.email, verificationCode);
-  res.send({
-    success: true,
-    message: "Email Send succefuly",
-    email: userData.email,
-  });
 });
 
 router.post("/code", async (req, res) => {

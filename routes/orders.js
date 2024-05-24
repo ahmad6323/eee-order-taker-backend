@@ -3,18 +3,18 @@ const router = express.Router();
 const Order = require('../models/order');
 const Product = require("../models/product");
 const Salesman = require("../models/salesman");
+const Customer = require("../models/customer");
 
 // POST endpoint to create a new order
 router.post("/", async (req, res) => {
   try {
     
-    const { items, latitude, longitude } = req.body;
+    const { items, latitude, longitude, totalPrice, customerData } = req.body;  
 
     if (!items || !latitude || !longitude) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
-    let totalPrice = 0;
     let totalQuantity = 0;
 
     const enrichedItems = await Promise.all(items.map(async item => {
@@ -35,7 +35,6 @@ router.post("/", async (req, res) => {
       
       item.variations.forEach(variation => {
         totalQuantity += variation.quantity;
-        totalPrice += item.pricePerUnit * variation.quantity;
       });
 
       return item;
@@ -52,8 +51,16 @@ router.post("/", async (req, res) => {
     };
 
     let newOrder = new Order(orderData);
-
+    
     newOrder = await newOrder.save();
+
+    // customer
+    let customer = new Customer({
+      ...customerData,
+      order: newOrder._id
+    });
+
+    customer = await customer.save();
 
     res.status(201).json({ message: 'Order created successfully', order: newOrder });
     

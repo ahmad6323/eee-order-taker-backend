@@ -221,7 +221,7 @@ router.get("/get_subs/:cat_id", async (req, res) => {
 async function getSubCatCount(){
   let lastDoc = await SubCategory.find().limit(1).sort({$natural:-1})
   if(lastDoc.length === 0){
-    return 0;
+    return 1;
   }
   let count = parseInt(lastDoc[0].sku);
   count++;
@@ -231,7 +231,7 @@ async function getSubCatCount(){
 async function getCatCount(){
   let lastDoc = await Category.find().limit(1).sort({$natural:-1})
   if(lastDoc.length === 0){
-    return 0;
+    return 1;
   }
   let count = parseInt(lastDoc[0].sku);
   count++;

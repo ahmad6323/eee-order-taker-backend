@@ -4,20 +4,17 @@ const Size = require("../models/size");
 
 // POST operation to create a new size
 router.post("/", async (req, res) => {
-  // Validate the request body
   const { size } = req.body;
 
   var sizes = size.split(",");
   let sizesAdded = [];
 
   sizes.map(async (size) => {
-    // Check if size with the same value already exists
     let existingSize = await Size.findOne({ size: size });
     if (existingSize) {
       return res.status(400).send("Size with this value already exists.");
     }
     
-    // If not, save the new size
     let newSize = new Size({
       size: size,
     });
@@ -28,6 +25,38 @@ router.post("/", async (req, res) => {
 
   res.send(sizesAdded);
 });
+
+// update size
+router.put("/:id", async (req, res) => {
+  try{
+
+    const { size } = req.body;
+    console.log(req.body);
+
+    let findSize = await Size.findById(req.params.id);
+
+    if (!findSize) {
+      return res.status(400).send("Invalid Request to update size");
+    }
+
+    let existingSize = await Size.findOne({
+      size: size
+    });
+
+    if (existingSize) {
+      return res.status(400).send("Invalid Request to update size");
+    }
+    
+    const newSize = await Size.findByIdAndUpdate(findSize._id,{
+      size: size
+    }, { new : true });
+
+    res.send(newSize);
+  }catch(ex){
+    console.log(ex);
+  }
+});
+
 
 // GET operation to retrieve all sizes
 router.get("/", async (req, res) => {

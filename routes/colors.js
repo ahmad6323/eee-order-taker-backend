@@ -30,6 +30,36 @@ router.post("/", async (req, res) => {
   res.send(colorsAdded);
 });
 
+// update color
+router.put("/:id", async (req, res) => {
+  try{
+
+    const { color } = req.body;
+
+    let find = await Color.findById(req.params.id);
+
+    if (!find) {
+      return res.status(400).send("Invalid Request to update size");
+    }
+
+    let existing = await Color.findOne({
+      color: color
+    });
+
+    if (existing) {
+      return res.status(400).send("Invalid Request to update size");
+    }
+    
+    const newColor = await Color.findByIdAndUpdate(find._id,{
+      color: color
+    }, { new : true });
+
+    res.send(newColor);
+  }catch(ex){
+    console.log(ex);
+  }
+});
+
 // GET operation to retrieve all sizes
 router.get("/", async (req, res) => {
   const colors = await Color.find().sort("color");

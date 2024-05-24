@@ -63,7 +63,7 @@ const itemSchema = new Schema({
 const orderSchema = new Schema({
   items: [itemSchema],
   totalPrice: {
-    type: Number,
+    type: String,
   },
   totalQuantity: {
     type: Number,
@@ -78,6 +78,10 @@ const orderSchema = new Schema({
   creation_time: {
     type: Date,
     default: Date.now()
+  },
+  customer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Customer',
   },
   location: {
     type: {
