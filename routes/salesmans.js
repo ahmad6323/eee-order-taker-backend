@@ -214,11 +214,13 @@ const formatPrice = (price)=>{
 function calculateTotalBill(data) {
   let totalSales = 0;
   data.map((item)=>{
-    totalSales = totalSales + parseInt(item.totalPrice);
+    totalSales = totalSales + getPriceFromString(item.totalPrice);
   });
   return totalSales
 }
 
-
+const getPriceFromString = (priceString)=>{
+  return parseInt(priceString.replace(/[^0-9.-]+/g, ''), 10);
+}
 
 module.exports = router;

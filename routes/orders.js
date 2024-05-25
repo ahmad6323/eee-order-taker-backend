@@ -51,7 +51,6 @@ router.post("/", async (req, res) => {
     };
 
     let newOrder = new Order(orderData);
-    
     newOrder = await newOrder.save();
 
     // customer
@@ -61,6 +60,16 @@ router.post("/", async (req, res) => {
     });
 
     customer = await customer.save();
+
+    newOrder = await Order.findByIdAndUpdate(
+      newOrder._id,
+      {
+        customer: customer._id
+      },
+      {
+        new: true
+      }
+    );
 
     res.status(201).json({ message: 'Order created successfully', order: newOrder });
     
@@ -74,7 +83,7 @@ router.post("/", async (req, res) => {
 router.get("/", async (req, res) => {
   try {
     // Fetch all orders from the database
-    const orders = await Order.find();
+    const orders = await Order.find().populate("customer");
 
     let totalBill = 0;
 
@@ -88,6 +97,7 @@ router.get("/", async (req, res) => {
         image: salesman.image,
         phone: salesman.phone,
         feedBack: order.feedBack,
+        customer: order.customer,
         products: [],
         location: {
           latitude: order.location.coordinates[0],
@@ -238,7 +248,6 @@ router.get("/salesman_orders/:id", async (req, res) => {
 });
 
 
-
 // format price
 const formatPrice = (price)=>{
   return price.toLocaleString('en-US', {
@@ -250,7 +259,7 @@ const formatPrice = (price)=>{
 function calculateTotalBill(data) {
   let totalSales = 0;
   data.map((item)=>{
-    totalSales = totalSales + parseInt(item.totalPrice);
+    totalSales = totalSales + getPriceFromString(item.totalPrice);
   });
   return totalSales
 }
@@ -258,6 +267,10 @@ function calculateTotalBill(data) {
 // get product by id
 const getProductById = async (id)=>{
   return await Product.findById(id);
+}
+
+const getPriceFromString = (priceString)=>{
+  return parseInt(priceString.replace(/[^0-9.-]+/g, ''), 10);
 }
 
 module.exports = router;

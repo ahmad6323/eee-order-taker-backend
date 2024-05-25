@@ -215,7 +215,7 @@ async function generateSKU() {
   try{
     let lastDoc = await ProductVariation.find().limit(1).sort({$natural:-1})
     if(lastDoc.length === 0){
-      return 0;
+      return 1;
     }
     const sku = lastDoc[0].SKU.split("-");
     let count = parseInt(sku[2]);
