@@ -9,8 +9,6 @@ const salesmanSchema = new mongoose.Schema({
   phone: {
     type: String,
     required: true,
-    minlength: 11,
-    maxlength: 11,
   },
   email: {
     type: String,

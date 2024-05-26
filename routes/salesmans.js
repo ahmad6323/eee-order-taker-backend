@@ -8,6 +8,7 @@ const sendEmail = require("../utils/sendEmail");
 const Order = require("../models/order");
 const fs = require('fs');
 const path = require('path');
+const ProductAllocation = require("../models/allocation");
 
 
 router.post("/", async (req, res) => {
@@ -122,28 +123,45 @@ router.put("/updatePass", async (req, res) => {
 });
 
 router.get("/", async (req, res) => {
-  const salesman = await Salesman.find().populate("department").sort("name");
-  res.send(salesman);
+  try{
+    const salesman = await Salesman.find().populate("department").sort("name");
+    res.send(salesman);
+  }catch(ex){
+    console.log(error);
+    res.status(500);
+  }
 });
 
 router.get("/:id", async (req, res) => {
   try{
-    console.log(req.params.id);
     const salesman = await Salesman.findById(req.params.id);
     res.send(salesman);
   }catch(error){
     console.log(error);
+    res.status(500);
   }
 });
 
 router.delete("/:id", async (req, res) => {
-  const salesman = await Salesman.findByIdAndRemove(req.params.id);
-  if (!salesman)
-    return res
-      .status(404)
-      .send("The salesman with the given ID was not found.");
+  try{
+    let salesman = await Salesman.findById(req.params.id);
+  
+    if (!salesman){
+      return res.status(404).send("The salesman with the given ID was not found.");
+    }
 
-  res.send(salesman);
+    // remove product allocations
+    await ProductAllocation.find({
+      salesmanId: salesman._id
+    }).deleteMany();
+
+    salesman = await Salesman.findByIdAndDelete(salesman._id);
+  
+    res.send(salesman);
+  }catch(ex){
+    console.log(ex);
+    res.status(500);
+  }
 });
 
 router.put("/:id", async (req, res) => {

@@ -145,10 +145,12 @@ router.get("/:id", async (req, res) => {
 });
 
 // READ (Get products by department)
-router.get("/department/:departmentId", async (req, res) => {
+router.get("/department_products/:departmentId", async (req, res) => {
   try {
     const products = await Product.find({
-      department: req.params.departmentId,
+      department: {
+        $in: req.params.departmentId
+      },
     });
     res.send(products);
   } catch (err) {

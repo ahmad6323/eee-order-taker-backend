@@ -11,16 +11,13 @@ router.post("/", async (req, res) => {
 
   sizes.map(async (size) => {
     let existingSize = await Size.findOne({ size: size });
-    if (existingSize) {
-      return res.status(400).send("Size with this value already exists.");
+    if (!existingSize) {
+      let newSize = new Size({
+        size: size,
+      });
+      newSize = await newSize.save();
+      sizesAdded.push(newSize);
     }
-    
-    let newSize = new Size({
-      size: size,
-    });
-    
-    newSize = await newSize.save();
-    sizesAdded.push(newSize);
   })
 
   res.send(sizesAdded);
@@ -31,7 +28,6 @@ router.put("/:id", async (req, res) => {
   try{
 
     const { size } = req.body;
-    console.log(req.body);
 
     let findSize = await Size.findById(req.params.id);
 

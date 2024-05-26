@@ -89,7 +89,11 @@ router.get("/", async (req, res) => {
 
     const processedOrders = orders.map(async (order) => {
 
-      const salesman = await Salesman.findById(order.items[0].salesman).select("_id name image phone"); 
+      let salesman = await Salesman.findById(order.items[0].salesman).select("_id name image phone"); 
+      
+      if(!salesman){
+        return;
+      }
 
       const processedOrder = {
         salesmanId: salesman._id,
@@ -97,7 +101,7 @@ router.get("/", async (req, res) => {
         image: salesman.image,
         phone: salesman.phone,
         feedBack: order.feedBack,
-        customer: order.customer,
+        customer: order.customer ? order.customer : undefined,
         products: [],
         location: {
           latitude: order.location.coordinates[0],
@@ -140,6 +144,9 @@ router.get("/", async (req, res) => {
 
     Promise.all(processedOrders)
       .then((data) => {
+        if(data && data.length > 0){
+          data = data.filter(d => d !== null && d !== undefined);
+        }
         res.send(data);
       })
       .catch((error) => {
@@ -255,6 +262,7 @@ const formatPrice = (price)=>{
     currency: 'PKR',
   })
 }
+
 // calculate total sales - admin
 function calculateTotalBill(data) {
   let totalSales = 0;
@@ -264,11 +272,7 @@ function calculateTotalBill(data) {
   return totalSales
 }
 
-// get product by id
-const getProductById = async (id)=>{
-  return await Product.findById(id);
-}
-
+// convert string price to int
 const getPriceFromString = (priceString)=>{
   return parseInt(priceString.replace(/[^0-9.-]+/g, ''), 10);
 }

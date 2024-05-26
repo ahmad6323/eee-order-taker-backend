@@ -10,21 +10,19 @@ router.post("/", async (req, res) => {
   // can be multiple
   var colors = color.split(",");
   let colorsAdded = [];
-
+  
   colors.map(async (color) => {
     // Check if size with the same value already exists
     let existingColor = await Color.findOne({ color: color });
-    if (existingColor) {
-      return res.status(400).send("Color already exists.");
+    if (!existingColor) {
+      // If not, save the new size
+      let newColor = new Color({
+        color: color,
+      });
+  
+      newColor = await newColor.save();
+      colorsAdded.push(newColor);
     }
-
-    // If not, save the new size
-    let newColor = new Color({
-      color: color,
-    });
-
-    newColor = await newColor.save();
-    colorsAdded.push(newColor);
   })
 
   res.send(colorsAdded);

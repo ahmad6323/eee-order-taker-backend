@@ -4,7 +4,6 @@ const ProductAllocation = require("../models/allocation");
 const Product = require("../models/product");
 const Salesman = require("../models/salesman");
 const ProductVariation = require("../models/productVariation");
-const c = require("config");
 
 // Create a new product allocation
 router.post("/", async (req, res) => {
@@ -179,7 +178,6 @@ router.get("/get_allocations/:id/:userId", async (req, res) => {
 });
 
 
-
 // Get product allocation by ID
 router.get("/:id", async (req, res) => {
   try {
@@ -196,23 +194,14 @@ router.get("/:id", async (req, res) => {
 // Delete product allocation by ID
 router.delete("/:id", async (req, res) => {
   try {
-    const productAllocation = await ProductAllocation.findById(req.params.id);
+    let productAllocation = await ProductAllocation.findById(req.params.id);
+    
     if (!productAllocation) {
       return res.status(404).send("Product allocation not found");
     }
 
-    // Increment product quantities based on allocations
-    const product = await Product.findById(productAllocation.productId);
-    for (const allocation of productAllocation.allocations) {
-      const { name, sizes } = allocation;
-      const productColor = product.colors.find((c) => c.name === name);
-      for (const [size, quantity] of Object.entries(sizes)) {
-        productColor.sizes[size] += quantity;
-      }
-    }
-    await product.save();
+    productAllocation = await ProductAllocation.findByIdAndDelete(productAllocation._id);
 
-    await ProductAllocation.findByIdAndRemove(req.params.id);
     res.send(productAllocation);
   } catch (error) {
     res.status(500).send(error.message);
@@ -253,7 +242,6 @@ router.get("/variations/:id", async (req, res) => {
       path: "color",
       select: "color"
     });
-
     res.send(variations);
 
   } catch (error) {
@@ -328,7 +316,6 @@ function groupProductsByProductIds(data) {
   return groupedProducts;
 }
 
-
 // group all variations based on *shared* productId
 const groupProductsByProductId = (products) => {
   return products.reduce((acc, product) => {
@@ -353,11 +340,25 @@ const groupProductsByProductId = (products) => {
 function transformData(data) {
   const transformedData = [];
   for (const order of data) {
+    if(!order.salesmanId){
+      return;
+    }
     const salesman = order.salesmanId;
     const products = {};
     for (const product of order.products) {
+
       const variation = product.variation;
+
+      if(!variation){
+        return;
+      }
+
+      if(!variation.productId){
+        return;
+      }
+
       const productId = variation.productId._id;
+
       if (!products[productId]) {
         products[productId] = {
           productId: variation.productId._id.toHexString(),
@@ -368,6 +369,7 @@ function transformData(data) {
           variations: [],
         };
       }
+
       products[productId].variations.push({
         _id: variation._id.toHexString(),
         color: variation.color.color,
@@ -376,13 +378,23 @@ function transformData(data) {
         quantity: product.quantity,
       });
     }
+
     transformedData.push({
       _id: order._id,
       salesmanId: salesman,
       products: Object.values(products),
     });
+
   }
+
   return transformedData;
 }
+
+
+
+// 66536c430a717765e96a044b
+// 665306e299e8751f3be75019
+// 6652fd40e66dea3eb6cb6cb9
+// 6652fce7e66dea3eb6cb6ca4
 
 module.exports = router;

@@ -11,8 +11,7 @@ router.post("/", async (req, res) => {
     
     departments.map(async (department) => {
       // Check if department with the same name already exists
-      let existingDepartment = await Department.findOne({ name: department });
-
+      let existingDepartment = await Department.findOne({ name: department.trim() });
       if (!existingDepartment) {
         // If not, save the new department
         let departmentAdd = new Department({
@@ -20,8 +19,6 @@ router.post("/", async (req, res) => {
         });
         departmentAdd = await departmentAdd.save();
         departmentsAdded.push(departmentAdd);
-      }else{
-        departmentsAdded.push(existingDepartment);
       }
     })
 
