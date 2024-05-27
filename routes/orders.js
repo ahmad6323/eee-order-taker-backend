@@ -115,6 +115,10 @@ router.get("/", async (req, res) => {
 
         // get the product using productId
         const findProductById = await Product.findById(product);
+
+        if(!findProductById){
+          return;
+        }
         
         let quantityOrdered = 0;
 
@@ -212,6 +216,9 @@ router.get("/salesman_orders/:id", async (req, res) => {
 
         // get the product using productId
         const findProductById = await Product.findById(product);
+        if(!findProductById){
+          return;
+        }
         
         let quantityOrdered = 0;
 
@@ -241,6 +248,9 @@ router.get("/salesman_orders/:id", async (req, res) => {
 
     Promise.all(processedOrders)
       .then((data) => {
+        if(data && data.length > 0){
+          data = data.filter(d => d !== null && d !== undefined);
+        }
         res.send(data);
       })
       .catch((error) => {

@@ -11,6 +11,7 @@ const Size = require("../models/size");
 const SubCategory = require('../models/subcategory');
 const fs = require('fs');
 const path = require('path');
+const Allocations = require("../models/allocation");
 
 // CREATE
 router.post("/", upload.any('imageUrl',12), async (req, res) => {
@@ -108,9 +109,6 @@ router.post("/", upload.any('imageUrl',12), async (req, res) => {
   }
 });
 
-function producSKU(sku){
-  return sku + 1;
-}
 
 // READ (Get all products)
 router.get("/", async (req, res) => {
@@ -201,11 +199,34 @@ router.put("/:id", async (req, res) => {
 // DELETE
 router.delete("/:id", async (req, res) => {
   try {
-    const product = await Product.findByIdAndRemove(req.params.id);
-    if (!product)
-      return res
-        .status(404)
-        .send("The product with the given ID was not found.");
+    console.log(req.params.id);
+    const product = await Product.findById(req.params.id);
+    
+    if (!product){
+      return res.status(404).send("The product with the given ID was not found.");
+    }
+
+    // remove allocations
+    const variations = await ProductVariation.find({
+      productId: product._id
+    }).select("_id");
+
+    await Product.findByIdAndDelete(product._id);
+    
+    if (variations && variations.length > 0) {
+
+      // Extract the array of variation IDs
+      const variationIds = variations.map(variation => variation._id);
+
+      // Remove all variations related to the specific product
+      await ProductVariation.deleteMany({ productId: product._id });
+
+      // Remove allocation documents containing the variations in the nested products array
+      await Allocations.deleteMany({ 'products.variation': { $in: variationIds } });
+      
+    }
+    
+
     res.send(product);
   } catch (err) {
     console.error(err.message);
@@ -213,6 +234,11 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
+
+// Utility
+
+
+// generate sku
 async function generateSKU() {
   try{
     let lastDoc = await ProductVariation.find().limit(1).sort({$natural:-1})
@@ -227,6 +253,11 @@ async function generateSKU() {
     console.error(err.message);
     return 0;
   }
+}
+
+// utility
+function producSKU(sku){
+  return sku + 1;
 }
 
 
