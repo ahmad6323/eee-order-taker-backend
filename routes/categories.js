@@ -81,7 +81,8 @@ router.get("/", async (req, res) => {
 router.get("/sub_cats", async (req, res) => {
   try{
     const categories = await SubCategory.find().sort("name").populate("parent_id");
-    res.send(categories);
+    const filtered = categories.filter((cat)=> cat.parent_id !== null); 
+    res.send(filtered);
   }catch(ex){
     console.log(ex);
     res.status(500).send("Error");
