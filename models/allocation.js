@@ -15,6 +15,9 @@ const productAllocationSchema = new mongoose.Schema({
       },
       quantity: {
         type: Number
+      },
+      remaining: {
+        type: Number
       }
     }
   ],

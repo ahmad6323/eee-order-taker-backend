@@ -4,6 +4,7 @@ const Order = require('../models/order');
 const Product = require("../models/product");
 const Salesman = require("../models/salesman");
 const Customer = require("../models/customer");
+const ProductAllocation = require("../models/allocation");
 
 // POST endpoint to create a new order
 router.post("/", async (req, res) => {
@@ -71,8 +72,37 @@ router.post("/", async (req, res) => {
       }
     );
 
-    res.status(201).json({ message: 'Order created successfully', order: newOrder });
+    // update the salesman'S allocation
+    items.map(async (item)=>{
+      
+      const { salesman, variations } = item;
+
+      // take variations
+      for (const variation of variations) {
+        const { variationId, quantity } = variation;
+  
+        // Find the allocation document
+        const allocation = await ProductAllocation.findOne({
+          salesmanId: salesman,
+          'products.variation': variationId
+        });
+        if (allocation) {
+          const product = allocation.products.find(p => p.variation.toString() === variationId);
+          if (product) {
+            // Update the remaining quantity
+            const remaining = product.remaining - quantity;
+  
+            // Save the updated allocation document
+            const result = await ProductAllocation.updateOne(
+              { _id: allocation._id, "products.variation": variationId },
+              { $set: { "products.$.remaining": remaining } }
+            );
+          }
+        }
+      }
+    });
     
+    res.status(201).json({ message: 'Order created successfully', order: newOrder });
   } catch (error) {
     console.error("Error creating orders:", error);
     res.status(500).send("Internal Server Error");

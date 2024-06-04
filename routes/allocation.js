@@ -35,7 +35,8 @@ router.post("/", async (req, res) => {
     const productsList = allocations.map((alloc)=>{
       return {
         variation: alloc.productId,
-        quantity: alloc.quantity
+        quantity: alloc.quantity,
+        remaining: alloc.quantity
       }
     });
 
@@ -96,7 +97,7 @@ router.get("/", async (req, res) => {
 // Get all product allocations for salesman - salesman product list page
 router.get("/:id", async (req, res) => {
   try {
-    const allocations = await ProductAllocation.findOne({
+    const allocations = await ProductAllocation.find({
       salesmanId: req.params.id
     })
       .populate({
@@ -125,10 +126,9 @@ router.get("/:id", async (req, res) => {
       }
     );
 
-    if(allocations && allocations.products){
-      const groupedProducts = groupProductsByProductId(allocations.products);
-      const groupedProductsArray = Object.values(groupedProducts);
-      res.send(groupedProductsArray);
+    if(allocations){
+      const groupedProducts = formatAllocations(allocations);
+      res.send(groupedProducts);
     }
 
   } catch (error) {
@@ -272,6 +272,7 @@ const post_process = (data) => {
         color: product.variation.color,
         size: product.variation.size,
         quantity: product.quantity,
+        remaining: product.remaining,
         sku: product.variation.SKU,
       };
     } else {
@@ -331,6 +332,7 @@ const groupProductsByProductId = (products) => {
       size: product.variation.size,
       color: product.variation.color,
       quantity: product.quantity,
+      remaining: product.remaining,
       sku: product.variation.SKU
     });
     return acc;
@@ -376,6 +378,7 @@ function transformData(data) {
         size: variation.size.size,
         SKU: variation.SKU,
         quantity: product.quantity,
+        remaining: product.remaining
       });
     }
 
@@ -390,7 +393,41 @@ function transformData(data) {
   return transformedData;
 }
 
+function formatAllocations(allocations){
+  
+  return allocations.map(allocation => {
+    const productMap = {};
 
+    allocation.products.forEach(product => {
+      const variation = product.variation;
+      const productId = variation.productId._id;
+      
+      if (!productMap[productId]) {
+        productMap[productId] = {
+          productDetails: {
+            _id: variation.productId._id,
+            name: variation.productId.name,
+            price: variation.productId.price,
+            imageUrl: variation.productId.imageUrl,
+            description: variation.productId.description,
+          },
+          variations: []
+        };
+      }
+
+      productMap[productId].variations.push({
+        _id: variation._id,
+        size: variation.size,
+        color: variation.color,
+        quantity: product.quantity,
+        remaining: product.remaining,
+        sku: variation.sku,
+      });
+    });
+
+    return Object.values(productMap);
+  }).flat();
+}
 
 // 66536c430a717765e96a044b
 // 665306e299e8751f3be75019
