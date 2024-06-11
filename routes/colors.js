@@ -10,7 +10,7 @@ router.post("/", async (req, res) => {
   // can be multiple
   var colors = color.split(",");
   let colorsAdded = [];
-  
+
   colors.map(async (color) => {
     // Check if size with the same value already exists
     let existingColor = await Color.findOne({ color: color });
@@ -19,19 +19,18 @@ router.post("/", async (req, res) => {
       let newColor = new Color({
         color: color,
       });
-  
+
       newColor = await newColor.save();
       colorsAdded.push(newColor);
     }
-  })
+  });
 
   res.send(colorsAdded);
 });
 
 // update color
 router.put("/:id", async (req, res) => {
-  try{
-
+  try {
     const { color } = req.body;
 
     let find = await Color.findById(req.params.id);
@@ -41,26 +40,30 @@ router.put("/:id", async (req, res) => {
     }
 
     let existing = await Color.findOne({
-      color: color
+      color: color,
     });
 
     if (existing) {
       return res.status(400).send("Invalid Request to update size");
     }
-    
-    const newColor = await Color.findByIdAndUpdate(find._id,{
-      color: color
-    }, { new : true });
+
+    const newColor = await Color.findByIdAndUpdate(
+      find._id,
+      {
+        color: color,
+      },
+      { new: true }
+    );
 
     res.send(newColor);
-  }catch(ex){
+  } catch (ex) {
     console.log(ex);
   }
 });
 
 // GET operation to retrieve all sizes
 router.get("/", async (req, res) => {
-  const colors = await Color.find().sort("color");
+  const colors = await Color.find();
   res.send(colors);
 });
 

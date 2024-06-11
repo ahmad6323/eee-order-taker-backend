@@ -3,15 +3,17 @@ const router = express.Router();
 const Department = require("../models/department");
 
 router.post("/", async (req, res) => {
-  try{
+  try {
     const { name } = req.body;
 
     var departments = name.split(",");
     let departmentsAdded = [];
-    
+
     departments.map(async (department) => {
       // Check if department with the same name already exists
-      let existingDepartment = await Department.findOne({ name: department.trim() });
+      let existingDepartment = await Department.findOne({
+        name: department.trim(),
+      });
       if (!existingDepartment) {
         // If not, save the new department
         let departmentAdd = new Department({
@@ -20,18 +22,17 @@ router.post("/", async (req, res) => {
         departmentAdd = await departmentAdd.save();
         departmentsAdded.push(departmentAdd);
       }
-    })
+    });
 
     res.send(departmentsAdded);
-  }catch(ex){
+  } catch (ex) {
     console.log(ex);
   }
 });
 
 // update department
 router.put("/:id", async (req, res) => {
-  try{
-
+  try {
     const { department } = req.body;
 
     let find = await Department.findById(req.params.id);
@@ -41,25 +42,29 @@ router.put("/:id", async (req, res) => {
     }
 
     let existing = await Department.findOne({
-      name: department
+      name: department,
     });
 
     if (existing) {
       return res.status(400).send("Invalid Request to update size");
     }
-    
-    const newDepartment = await Department.findByIdAndUpdate(find._id,{
-      name: department
-    }, { new : true });
+
+    const newDepartment = await Department.findByIdAndUpdate(
+      find._id,
+      {
+        name: department,
+      },
+      { new: true }
+    );
 
     res.send(newDepartment);
-  }catch(ex){
+  } catch (ex) {
     console.log(ex);
   }
 });
 
 router.get("/", async (req, res) => {
-  const departments = await Department.find().sort("name");
+  const departments = await Department.find();
   res.send(departments);
 });
 
