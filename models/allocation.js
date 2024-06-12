@@ -7,6 +7,11 @@ const productAllocationSchema = new mongoose.Schema({
     ref: "Salesman",
     required: true,
   },
+  productId: {
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: "Product",
+    required: true
+  },
   products: [
     {
       variation: {

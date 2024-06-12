@@ -226,69 +226,7 @@ router.get("/profile_screen", async (req, res) => {
 router.get("/salesman_orders/:id", async (req, res) => {
   try {
     const orders = await Order.find({ 'items.salesman': req.params.id });
-    
-    let totalBill = 0;
-
-    const processedOrders = orders.map(async (order) => {
-
-      const processedOrder = {
-        orderId: order._id,
-        products: [],
-        location: {
-          latitude: order.location.coordinates[0],
-          longitude: order.location.coordinates[1]
-        },
-        totalBill: 0
-      };
-
-      for (const item of order.items) {
-        const product = item.productId; 
-
-        // get the product using productId
-        const findProductById = await Product.findById(product);
-        if(!findProductById){
-          return;
-        }
-        
-        let quantityOrdered = 0;
-
-        const variations = item.variations.map((variation) => {
-          quantityOrdered = quantityOrdered + variation.quantity;
-          return {
-            sku: variation.sku,
-            quantity: variation.quantity,
-          }
-        });
-
-        const totalPrice = item.pricePerUnit * variations.reduce((acc, variation) => acc + variation.quantity, 0);
-        totalBill += parseInt(totalPrice);
-
-        processedOrder.totalBill = totalBill;
-        processedOrder.products.push({  
-          name: findProductById.name,
-          imageUrl: findProductById.imageUrl,
-          price: findProductById.price,
-          variations,
-          quantityOrdered,
-          totalPrice: totalPrice.toFixed(2),
-        });
-      }
-      return processedOrder;
-    });
-
-    Promise.all(processedOrders)
-      .then((data) => {
-        if(data && data.length > 0){
-          data = data.filter(d => d !== null && d !== undefined);
-        }
-        res.send(data);
-      })
-      .catch((error) => {
-        // Handle the error appropriately
-        console.error(error);
-        res.status(500).send({ error: 'An error occurred while processing orders' });
-      }
-    );
+    return res.send(orders);
   } catch (err) {
     console.error('Error processing orders:', err);
   }

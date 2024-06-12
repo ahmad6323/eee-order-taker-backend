@@ -4,6 +4,7 @@ const ProductAllocation = require("../models/allocation");
 const Product = require("../models/product");
 const Salesman = require("../models/salesman");
 const ProductVariation = require("../models/productVariation");
+const mongoose = require("mongoose");
 
 // Create a new product allocation
 router.post("/", async (req, res) => {
@@ -19,7 +20,7 @@ router.post("/", async (req, res) => {
       
     // ensure all variations are valid 
     const variationIds = allocations.map((alloc)=>{
-      return alloc.productId.length > 0 && alloc.productId;
+      return alloc.variation.length > 0 && alloc.variation;
     }); 
 
     const variations = await ProductVariation.find({
@@ -32,23 +33,13 @@ router.post("/", async (req, res) => {
       return res.status(400).send("Problems in product variations");
     }
     
-    const productsList = allocations.map((alloc)=>{
-      return {
-        variation: alloc.productId,
-        quantity: alloc.quantity,
-        remaining: alloc.quantity
-      }
-    });
-
-    // assign
-    let assignedAllocations = new ProductAllocation({
-      salesmanId: salesmanId.value,
-      products: productsList
-    });
-
-    assignedAllocations = await assignedAllocations.save();
-
-    res.status(201).send(assignedAllocations);
+    const grouped = formatAllocationsIntoGroups(allocations);
+    
+    // iterate over the grouped
+    await updateAllocations(salesmanId["value"],grouped);
+    
+    res.send("Complete");
+    
   } catch (error) {
     res.status(400).send(error.message);
   }
@@ -104,11 +95,6 @@ router.get("/:id", async (req, res) => {
         path: 'products.variation',
         populate: [
           {
-            path: 'productId',
-            model: 'Product',
-            select: "name price description imageUrl"
-          },
-          {
             path: "size",
             model: "Size",
             select: "size"
@@ -120,16 +106,13 @@ router.get("/:id", async (req, res) => {
           }
         ],
       }).populate({
-        path: "salesmanId",
-        model: "Salesman",
-        select: "name phone email"
+        path: "productId",
+        model: "Product",
+        select: "name imageUrl price description"
       }
     );
 
-    if(allocations){
-      const groupedProducts = formatAllocations(allocations);
-      res.send(groupedProducts);
-    }
+    res.send(allocations);
 
   } catch (error) {
     console.log(error);
@@ -138,23 +121,13 @@ router.get("/:id", async (req, res) => {
 });
 
 // Get product allocations for salesman - salesman product detail page
-router.get("/get_allocations/:id/:userId", async (req, res) => {
+router.get("/get_allocations/:id", async (req, res) => {
   try {
-    const allocations = await ProductAllocation.findOne({
-      salesmanId: req.params.userId,
-    })
+    const allocations = await ProductAllocation.findById(req.params.id)
       .populate({
         path: 'products.variation',
-        match: {
-          productId: req.params.id
-        },
         select: "color size SKU",
         populate: [
-          {
-            path: 'productId',
-            model: 'Product',
-            select: "name price description imageUrl"
-          },
           {
             path: "size",
             model: "Size",
@@ -167,16 +140,18 @@ router.get("/get_allocations/:id/:userId", async (req, res) => {
           }
         ],
       }
-    );
+    ).populate({
+      path: "productId",
+      model: "Product",
+      select: "name price imageUrl description"
+    });
 
-    const processed = post_process(allocations);
-    res.send(processed);
+    res.send(allocations);
   } catch (error) {
     console.log(error);
     res.status(500).send(error.message);
   }
 });
-
 
 // Get product allocation by ID
 router.get("/:id", async (req, res) => {
@@ -429,9 +404,80 @@ function formatAllocations(allocations){
   }).flat();
 }
 
-// 66536c430a717765e96a044b
-// 665306e299e8751f3be75019
-// 6652fd40e66dea3eb6cb6cb9
-// 6652fce7e66dea3eb6cb6ca4
+// group the allocations based on product ID
+function formatAllocationsIntoGroups(allocations){
+
+  const grouped = allocations.reduce((acc, curr) => {
+    const { productId, quantity, variation } = curr;
+  
+    if (!acc[productId]) {
+      acc[productId] = [];
+    }
+  
+    acc[productId].push({
+      variation,
+      quantity: parseInt(quantity, 10)
+    });
+  
+    return acc;
+  }, {});
+  
+  // Transforming the grouped object into the desired format
+  return Object.entries(grouped).map(([productId, variations]) => ({
+    productId,
+    variations
+  }));
+
+}
+
+async function updateAllocations(salesmanId, data) {
+  try{
+    for (const product of data) {
+      const { productId, variations } = product;
+  
+      // Find the product allocation document
+      let allocation = await ProductAllocation.findOne({
+        salesmanId: salesmanId,
+        productId: productId
+      });
+  
+      if (!allocation) {
+        // If allocation doesn't exist, create a new one
+        allocation = new ProductAllocation({
+          salesmanId: salesmanId,
+          productId: productId,
+          products: []
+        });
+      }
+  
+      for (const variation of variations) {
+        const { variation: variationId, quantity } = variation;
+  
+        // Find the existing variation in the products array
+        const existingVariation = allocation.products.find(
+          (v) => v.variation.toString() === variationId
+        );
+  
+        if (existingVariation) {
+          // Update quantity and remaining if variation exists
+          existingVariation.quantity += quantity;
+          existingVariation.remaining += quantity;
+        } else {
+          // Add new variation if it doesn't exist
+          allocation.products.push({
+            variation: new mongoose.Types.ObjectId(variationId),
+            quantity,
+            remaining: quantity
+          });
+        }
+      }
+  
+      // Save the updated allocation document
+      await allocation.save();
+    }
+  }catch(ex){
+    console.log(ex);
+  }
+}
 
 module.exports = router;
