@@ -10,7 +10,7 @@ const ProductAllocation = require("../models/allocation");
 router.post("/", async (req, res) => {
   try {
     
-    const { items, latitude, longitude, totalPrice, customerData } = req.body;  
+    const { items, latitude, longitude, totalPrice, customerData } = req.body;
 
     if (!items || !latitude || !longitude) {
       return res.status(400).json({ message: 'Missing required fields' });
@@ -31,6 +31,7 @@ router.post("/", async (req, res) => {
           }
         ]
       );
+
       item.departmentName = getProduct ? getProduct.department.map(dep => dep.name) : null;
       item.categoryName = getProduct && getProduct.category ? getProduct.category.name : null;
       
@@ -93,7 +94,7 @@ router.post("/", async (req, res) => {
             const remaining = product.remaining - quantity;
   
             // Save the updated allocation document
-            const result = await ProductAllocation.updateOne(
+            await ProductAllocation.updateOne(
               { _id: allocation._id, "products.variation": variationId },
               { $set: { "products.$.remaining": remaining } }
             );
@@ -115,16 +116,10 @@ router.get("/", async (req, res) => {
     // Fetch all orders from the database
     const orders = await Order.find().populate("customer");
 
-    let totalBill = 0;
-
     const processedOrders = orders.map(async (order) => {
 
       let salesman = await Salesman.findById(order.items[0].salesman).select("_id name image phone"); 
       
-      if(!salesman){
-        return;
-      }
-
       const processedOrder = {
         salesmanId: salesman._id,
         salesmanName: salesman.name,
@@ -137,7 +132,7 @@ router.get("/", async (req, res) => {
           latitude: order.location.coordinates[0],
           longitude: order.location.coordinates[1]
         },
-        totalBill: 0
+        totalBill: order.totalPrice
       };
 
       for (const item of order.items) {
@@ -160,17 +155,12 @@ router.get("/", async (req, res) => {
           }
         });
 
-        const totalPrice = item.pricePerUnit * variations.reduce((acc, variation) => acc + variation.quantity, 0);
-        totalBill += parseInt(totalPrice);
-
-        processedOrder.totalBill = totalBill;
         processedOrder.products.push({  
           name: findProductById.name,
           imageUrl: findProductById.imageUrl,
           price: findProductById.price,
           variations,
-          quantityOrdered,
-          totalPrice: totalPrice.toFixed(2),
+          quantityOrdered
         });
       }
       return processedOrder;
@@ -189,7 +179,6 @@ router.get("/", async (req, res) => {
         res.status(500).send({ error: 'An error occurred while processing orders' });
       }
     );
-
     
   } catch (err) {
     console.error('Error processing orders:', err);
