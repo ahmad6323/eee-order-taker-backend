@@ -1,6 +1,6 @@
 # Eee Order Taker App Backend 
 
-![SumatraPDF_R65UTQEcfJ](https://github.com/ahmad6323/eee-order-taker-backend/assets/111060767/cef6bc98-04f1-4c3d-ba7c-3d2f6a7a0564)
+![OrderTaker](https://github.com/ahmad6323/eee-order-taker-backend/assets/111060767/a4ab1dda-e442-40ab-b358-4e0e1827229b)
 
 # How to run this project 
 
@@ -16,5 +16,7 @@ There are some few steps:
 
 
 # Frontend of this project is :
+
+https://github.com/ahmad6323/eee-order-taker-UI
 
 
